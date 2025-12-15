@@ -1,11 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as THREE from "three";
-  import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
+  import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
   onMount(() => {
-
-    
     // Types for Three.js objects
     const scene: THREE.Scene = new THREE.Scene();
     const camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(
@@ -34,7 +32,7 @@
     const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({
       color: 0xff6347,
       specular: 0xffffff,
-      shininess: 80,
+      shininess: 20,
     });
     const torus: THREE.Mesh = new THREE.Mesh(geometry, material);
     scene.add(torus);
@@ -53,10 +51,9 @@
       1
     );
 
-    const gridHelper = new THREE.GridHelper(200,50)
+    const gridHelper = new THREE.GridHelper(200, 50);
     scene.add(pointLightHelper);
-    scene.add(gridHelper)
-
+    scene.add(gridHelper);
 
     // Add a directional light for clearer contrast
     const dirLight: THREE.DirectionalLight = new THREE.DirectionalLight(
@@ -73,24 +70,32 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    const controls = new OrbitControls(camera,renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
 
-    function addStar(){
+    function addStar() {
+      const geometry = new THREE.SphereGeometry(0.25, 24, 24);
+      const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      const star = new THREE.Mesh(geometry, material);
 
-      const geometry = new THREE.SphereGeometry(0.25,24,24)
-      const material = new THREE.MeshStandardMaterial({color:0xffffff})
-      const star = new THREE.Mesh(geometry,material);
+      const [x, y, z] = Array.from({ length: 3 }, () =>
+        THREE.MathUtils.randFloatSpread(100)
+      );
 
-      const [x,y,z] = Array(3).fill().map(() => THREE.MathUtils.randFloatSpread(100));
-
-      star.position
+      star.position.set(x, y, z);
+      scene.add(star);
     }
+
+    Array.from({ length: 200 }).forEach(addStar);
+
+
+  const spaceTexture = new THREE.TextureLoader().load('space.jpg')
+  scene.background = spaceTexture;
+
     function animate() {
       requestAnimationFrame(animate);
       torus.rotation.x += 0.01;
       torus.rotation.y += 0.005;
       torus.rotation.z += 0.01;
-
 
       controls.update();
       // update helper to follow the light
