@@ -1,109 +1,123 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import * as THREE from "three";
-  import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-
-  onMount(() => {
-    // Types for Three.js objects
-    const scene: THREE.Scene = new THREE.Scene();
-    const camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({
-      canvas: document.querySelector("#bg") as HTMLCanvasElement,
-    });
-
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.position.setZ(30);
-
-    renderer.render(scene, camera);
-
-    const geometry: THREE.TorusGeometry = new THREE.TorusGeometry(
-      10,
-      3,
-      16,
-      100
-    );
-    // Use MeshPhongMaterial (clear specular highlights) so point light is visible
-    const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({
-      color: 0xff6347,
-      specular: 0xffffff,
-      shininess: 20,
-    });
-    const torus: THREE.Mesh = new THREE.Mesh(geometry, material);
-    scene.add(torus);
-    // ensure material updates
-    (material as THREE.MeshPhongMaterial).needsUpdate = true;
-
-    // Add lighting
-    const pointLight: THREE.PointLight = new THREE.PointLight(0xffffff, 4);
-    // moved the point light to a brighter offset
-    pointLight.position.set(10, 10, 10);
-    scene.add(pointLight);
-
-    // Helper to visualize the light position
-    const pointLightHelper: THREE.PointLightHelper = new THREE.PointLightHelper(
-      pointLight,
-      1
-    );
-
-    const gridHelper = new THREE.GridHelper(200, 50);
-    scene.add(pointLightHelper);
-    scene.add(gridHelper);
-
-    // Add a directional light for clearer contrast
-    const dirLight: THREE.DirectionalLight = new THREE.DirectionalLight(
-      0xffffff,
-      2
-    );
-    dirLight.position.set(-5, 5, 5);
-    scene.add(dirLight);
-
-    // Handle window resize
-    window.addEventListener("resize", () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-
-    function addStar() {
-      const geometry = new THREE.SphereGeometry(0.25, 24, 24);
-      const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-      const star = new THREE.Mesh(geometry, material);
-
-      const [x, y, z] = Array.from({ length: 3 }, () =>
-        THREE.MathUtils.randFloatSpread(100)
-      );
-
-      star.position.set(x, y, z);
-      scene.add(star);
-    }
-
-    Array.from({ length: 200 }).forEach(addStar);
-
-
-  const spaceTexture = new THREE.TextureLoader().load('space.jpg')
-  scene.background = spaceTexture;
-
-    function animate() {
-      requestAnimationFrame(animate);
-      torus.rotation.x += 0.01;
-      torus.rotation.y += 0.005;
-      torus.rotation.z += 0.01;
-
-      controls.update();
-      // update helper to follow the light
-      pointLightHelper.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-  });
+  import ThreeScene from "./components/ThreeScene.svelte";
+  import Header from "./components/Header.svelte";
+  import ContentSection from "./components/ContentSection.svelte";
 </script>
 
-<canvas id="bg" class="fixed top-0 left-0"></canvas>
+<ThreeScene />
+
+<main class="absolute w-full text-white z-99 grid grid-cols-12 pt-30 px-0">
+  <Header />
+
+  <blockquote>
+    <p>I like making stuff and putting it on the internet</p>
+  </blockquote>
+
+  <ContentSection>
+    <h2>📜 Manifesto</h2>
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+  </ContentSection>
+
+  <ContentSection>
+    <h2>👩🏽‍🚀 Projects</h2>
+
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+
+    <h2>🏆 Accomplishments</h2>
+
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+  </ContentSection>
+
+  <blockquote class="col-start-2 col-span-9 mb-87.5">
+    <p class="bg-white text-black text-6xl inline leading-none">
+      The best way out is always through <br />-Robert Frost
+    </p>
+  </blockquote>
+
+  <ContentSection
+    classes="col-start-6 col-span-6 p-4 bg-black/95 text-xl leading-6 mb-87.5"
+  >
+    <h2>🌮 Work History</h2>
+
+    <h3>McDonalds</h3>
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+    <h3>Burger King</h3>
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+    <h3>Taco Bell</h3>
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+  </ContentSection>
+
+  <blockquote class="col-start-2 col-span-9 mb-87.5">
+    <p class="bg-white text-black text-4xl inline leading-none">
+      Thanks for watching!
+    </p>
+  </blockquote>
+</main>
