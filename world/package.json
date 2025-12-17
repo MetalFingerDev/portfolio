@@ -41,6 +41,7 @@
 		"vite-plugin-devtools-json": "^1.0.0"
 	},
 	"dependencies": {
+		"sqlite3": "^5.1.7",
 		"three": "^0.182.0"
 	}
 }
