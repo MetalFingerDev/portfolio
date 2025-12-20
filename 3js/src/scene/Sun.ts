@@ -18,8 +18,6 @@ export default class Sun {
         emissiveIntensity: 6,
         roughness: 1,
         metalness: 0,
-        transparent: false,
-        opacity: 1,
         side: THREE.DoubleSide,
       })
     );
@@ -29,7 +27,7 @@ export default class Sun {
     scene.add(this.mesh);
 
     // Use a directional light to simulate sunlight coming from a far distance
-    const FIXED_SUN_INTENSITY = 3.5;
+    const FIXED_SUN_INTENSITY = 3;
     this.light = new THREE.DirectionalLight(0xffffff, FIXED_SUN_INTENSITY);
     this.light.castShadow = false;
     this.light.position.copy(this.mesh.position);
@@ -41,22 +39,24 @@ export default class Sun {
     // Attach the target to the sun mesh so it follows the sun's transform
     this.mesh.add(this.light.target);
 
-    // Corona: minimal canvas-gradient texture for a soft, realistic halo
-    const c = document.createElement("canvas");
-    c.width = c.height = 256;
-    const ctx = c.getContext("2d")!;
-    const g = ctx.createRadialGradient(128, 128, 20, 128, 128, 128);
-    g.addColorStop(0, "rgba(255,255,220,1)");
-    g.addColorStop(0.3, "rgba(255,200,120,0.6)");
-    g.addColorStop(0.6, "rgba(255,120,60,0.18)");
-    g.addColorStop(1, "rgba(255,120,60,0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 256, 256);
-    const tex = new THREE.CanvasTexture(c);
-    // Prefer sRGB encoding when available (some @types/three versions don't list it)
-    if ((THREE as any).sRGBEncoding !== undefined) {
-      (tex as any).encoding = (THREE as any).sRGBEncoding;
-    }
+    const createCoronaTexture = () => {
+      const c = document.createElement("canvas");
+      c.width = c.height = 256;
+      const ctx = c.getContext("2d")!;
+      const g = ctx.createRadialGradient(128, 128, 20, 128, 128, 128);
+      g.addColorStop(0, "rgba(255,255,220,1)");
+      g.addColorStop(0.3, "rgba(255,200,120,0.6)");
+      g.addColorStop(0.6, "rgba(255,120,60,0.18)");
+      g.addColorStop(1, "rgba(255,120,60,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 256, 256);
+      const tex = new THREE.CanvasTexture(c);
+      const t: any = tex;
+      if ((THREE as any).sRGBEncoding !== undefined)
+        t.encoding = (THREE as any).sRGBEncoding;
+      return tex;
+    };
+    const tex = createCoronaTexture();
 
     // Use a camera-facing sprite for the corona so it looks consistent from any angle
     const spriteMat = new THREE.SpriteMaterial({

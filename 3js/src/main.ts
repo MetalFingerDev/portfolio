@@ -69,6 +69,8 @@ document.body.appendChild(camInfo);
 
 const earth = new Earth(scene);
 const sun = new Sun(scene);
+// inform earth about sun position so city lights shader can determine night side
+earth.setSunPosition(sun.position);
 
 // Earth label (size-independent, screen-space)
 const earthLabelDiv = document.createElement("div");

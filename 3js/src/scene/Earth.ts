@@ -10,7 +10,10 @@ export default class Earth {
   mesh: THREE.Mesh;
   group: THREE.Group;
   cloudsMesh: THREE.Mesh | null = null;
+  lightsMesh: THREE.Mesh | null = null;
+  sunPositionRef: THREE.Vector3 | null = null;
   static RADIUS = EARTH_RADIUS;
+  static ROTATION_SPEED = 0.1;
 
   constructor(
     scene: THREE.Scene,
@@ -21,13 +24,62 @@ export default class Earth {
 
     const geo = new THREE.IcosahedronGeometry(EARTH_RADIUS, 12);
     const loader = new THREE.TextureLoader();
-    const textureUrl = new URL("../texture/00_earthmap1k.jpg", import.meta.url)
-      .href;
-    const mat = new THREE.MeshStandardMaterial({
-      map: loader.load(textureUrl),
-    });
+    const applySRGB = (tex: THREE.Texture) => {
+      const t = tex as any;
+      if (t.colorSpace !== undefined)
+        t.colorSpace = (THREE as any).SRGBColorSpace;
+      else if (t.encoding !== undefined)
+        t.encoding = (THREE as any).sRGBEncoding;
+    };
+    const textureUrl = new URL("../texture/earth.jpg", import.meta.url).href;
+    const mat = new THREE.MeshStandardMaterial();
+    // Load the color map and make sure it's treated as sRGB
+    loader.load(
+      textureUrl,
+      (tex) => {
+        applySRGB(tex);
+        mat.map = tex;
+        mat.needsUpdate = true;
+      },
+      undefined,
+      (err) => console.error("Failed to load Earth texture:", textureUrl, err)
+    );
     this.mesh = new THREE.Mesh(geo, mat);
     this.group.add(this.mesh);
+
+    // City lights layer — simple texture overlay
+    const lightsGeo = new THREE.IcosahedronGeometry(EARTH_RADIUS * 1.002, 12);
+    const lightsMat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      opacity: 1,
+    });
+    const lightsUrl = new URL(
+      "../texture/03_earthlights1k.png",
+      import.meta.url
+    ).href;
+    // load lights texture and apply directly to the material
+    loader.load(
+      lightsUrl,
+      (tex) => {
+        applySRGB(tex);
+        lightsMat.map = tex;
+        lightsMat.needsUpdate = true;
+      },
+      undefined,
+      (err) =>
+        console.error(
+          "Failed to load Earth city lights texture:",
+          lightsUrl,
+          err
+        )
+    );
+    this.lightsMesh = new THREE.Mesh(lightsGeo, lightsMat);
+    // Render after earth but before clouds
+    this.lightsMesh.renderOrder = 1;
+    this.group.add(this.lightsMesh);
 
     // Clouds layer (slightly larger sphere)
     // Convert cloud altitude (km) to a scale factor relative to Earth's radius
@@ -45,18 +97,38 @@ export default class Earth {
       import.meta.url
     ).href;
     const cloudsMat = new THREE.MeshStandardMaterial({
-      map: loader.load(cloudMapUrl),
-      alphaMap: loader.load(cloudAlphaUrl),
       transparent: true,
-      opacity: 0.9,
+      opacity: 1,
       side: THREE.DoubleSide,
       blending: THREE.NormalBlending,
       depthWrite: false,
       alphaTest: 0.05,
     });
+    // Load cloud color map (sRGB) and alpha map separately
+    loader.load(
+      cloudMapUrl,
+      (tex) => {
+        applySRGB(tex);
+        cloudsMat.map = tex;
+        cloudsMat.needsUpdate = true;
+      },
+      undefined,
+      (err) => console.error("Failed to load cloud map:", cloudMapUrl, err)
+    );
+    loader.load(
+      cloudAlphaUrl,
+      (tex) => {
+        cloudsMat.alphaMap = tex;
+        cloudsMat.needsUpdate = true;
+      },
+      undefined,
+      (err) => {
+        console.error("Failed to load cloud alpha map:", cloudAlphaUrl, err);
+      }
+    );
     this.cloudsMesh = new THREE.Mesh(cloudGeo, cloudsMat);
     // ensure clouds render after earth and avoid z-fighting
-    this.cloudsMesh.renderOrder = 1;
+    this.cloudsMesh.renderOrder = 2;
     this.group.add(this.cloudsMesh);
 
     scene.add(this.group);
@@ -65,12 +137,15 @@ export default class Earth {
     this.group.rotation.z = THREE.MathUtils.degToRad(23.44);
   }
 
+  setSunPosition(sunPos: THREE.Vector3) {
+    this.sunPositionRef = sunPos;
+  }
+
   update(delta = 0.016) {
-    const ROTATION_SPEED = 0.3;
-    this.mesh.rotation.y += ROTATION_SPEED * delta;
-    if (this.cloudsMesh) {
-      // clouds move a bit faster to simulate upper-atmosphere wind
-      this.cloudsMesh.rotation.y += ROTATION_SPEED * 1.2 * delta;
-    }
+    this.mesh.rotation.y += Earth.ROTATION_SPEED * delta;
+    if (this.lightsMesh)
+      this.lightsMesh.rotation.y += Earth.ROTATION_SPEED * delta;
+    if (this.cloudsMesh)
+      this.cloudsMesh.rotation.y += Earth.ROTATION_SPEED * 1.2 * delta;
   }
 }
