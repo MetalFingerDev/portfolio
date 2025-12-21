@@ -1,12 +1,14 @@
 import * as THREE from "three";
 
 import { EARTH_RADIUS, EARTH_ROTATION } from "./units";
+import { getFresnelMat } from "./getFresnelMat.js";
 
 export default class Earth {
   earthMesh: THREE.Mesh;
   earthGroup: THREE.Group;
   cloudsMesh: THREE.Mesh | null = null;
   lightsMesh: THREE.Mesh | null = null;
+  atmosphereMesh: THREE.Mesh | null = null;
   static RADIUS = EARTH_RADIUS;
   static ROTATION_SPEED = EARTH_ROTATION;
 
@@ -44,6 +46,19 @@ export default class Earth {
     this.cloudsMesh.renderOrder = 2;
     this.cloudsMesh.scale.setScalar(1.003);
     this.earthGroup.add(this.cloudsMesh);
+
+    const atmosphereMaterial = getFresnelMat();
+    // Render atmosphere additively and ensure it doesn't depth-test/write so it blends over clouds
+    atmosphereMaterial.transparent = true;
+    (atmosphereMaterial as any).depthWrite = false;
+    (atmosphereMaterial as any).depthTest = false;
+    atmosphereMaterial.blending = THREE.AdditiveBlending;
+
+    this.atmosphereMesh = new THREE.Mesh(earthGeometry, atmosphereMaterial);
+    this.atmosphereMesh.scale.setScalar(1.01);
+    // render after clouds (clouds use renderOrder = 2)
+    this.atmosphereMesh.renderOrder = 3;
+    this.earthGroup.add(this.atmosphereMesh);
   }
 
   update(delta = 0.016) {

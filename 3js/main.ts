@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import Sun from "./src/Sun";
 import Earth from "./src/Earth";
-import setupViewSunButton from "./src/viewSunBtn";
+import setupViewTargetsButton from "./src/viewTargetsBtn";
 import Stars from "./src/Stars";
 
 const scene = new THREE.Scene();
@@ -73,8 +73,8 @@ const animateCameraTo = (
   if (onComplete) onComplete();
 };
 
-// Wire up the view button
-setupViewSunButton(viewSunBtn, controls, earth, sun, animateCameraTo);
+// Wire up the view button (cycles Earth → Sun → Stars)
+setupViewTargetsButton(viewSunBtn, controls, earth, sun, animateCameraTo);
 
 // start render loop
 animate();
