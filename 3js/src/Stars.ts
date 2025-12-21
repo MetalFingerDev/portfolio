@@ -55,7 +55,8 @@ export default class Stars {
     for (let i = 0; i < n; i++) {
       const s = stars[i];
       // Spread stars at realistic distances: brighter stars (lower mag) are closer, but scale up for visibility
-      const distanceFactor = Math.max(0.01, 1 - (s.mag / 10)) * (1 + Math.random() * 9); // vary from 0.01 to 10 times base
+      const distanceFactor =
+        Math.max(0.01, 1 - s.mag / 10) * (1 + Math.random() * 9); // vary from 0.01 to 10 times base
       const r = STAR_FIELD_RADIUS * distanceFactor;
       const [x, y, z] = raDecToXYZ(s.ra, s.dec, r);
       positions[i * 3] = x;
