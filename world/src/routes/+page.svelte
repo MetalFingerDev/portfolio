@@ -75,5 +75,5 @@
 
 <main class="relative h-[200vh]">
 	<div class="absolute z-10 h-screen w-screen bg-amber-300">hero</div>
-	<canvas class="sticky z-0 top-0 h-full w-full" {@attach createCanvasRefAttachment()}></canvas>
+	<canvas class="sticky z-0 top-0" {@attach createCanvasRefAttachment()}></canvas>
 </main>
