@@ -1,0 +1,16 @@
+const viewSunBtn = document.createElement("button");
+viewSunBtn.textContent = "View Sun";
+document.body.appendChild(viewSunBtn);
+
+function animateCameraTo(
+  targetPos: THREE.Vector3,
+  lookAt: THREE.Vector3,
+  _duration = 700,
+  onComplete?: () => void
+) {
+  camera.position.copy(targetPos);
+  controls.target.copy(lookAt);
+  controls.update();
+  onComplete?.();
+}
+setupViewSunButton(viewSunBtn, controls, earth, sun, animateCameraTo);
