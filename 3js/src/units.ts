@@ -43,6 +43,12 @@ export const EARTH_OBLIQUITY_DEG = 23.439281; // Earth's axial tilt (obliquity)
 export const MOON_AXIS_TILT_DEG = 6.68; // Moon's axis tilt (approx.)
 export const SUN_AXIS_TILT_DEG = 7.25; // Sun axis tilt relative to ecliptic (approx.)
 
+// Sun rotation
+export const SUN_ROTATION_PERIOD_DAYS = 25; // approximate equatorial rotation period
+export const SUN_ROTATION_PERIOD_SECONDS =
+  SUN_ROTATION_PERIOD_DAYS * SECONDS_PER_DAY;
+export const SUN_ROTATION_SPEED = (2 * Math.PI) / SUN_ROTATION_PERIOD_SECONDS; // radians per second
+
 export const msToDays = (ms: number) => ms / 1000 / SECONDS_PER_DAY;
 
 export const perSecondToPerDay = (v: number) => v * SECONDS_PER_DAY;

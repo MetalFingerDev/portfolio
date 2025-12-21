@@ -42,15 +42,14 @@ window.addEventListener("resize", () => {
 
 const sun = new Sun(scene);
 const earth = new Earth(scene);
-// add star field (debug shell on so you can see it immediately)
-new Stars(scene, 4000);
-// add the moon as a child of the Earth group so it orbits the Earth
+const stars = new Stars(scene);
 const moon = new Moon(scene, earth.earthGroup as THREE.Group);
-// set initial orbital phase (radians) — example: Math.PI / 4 === 45°
+
 moon.orbitGroup.rotation.y = Math.PI / 4;
+
 controls.target.copy(earth.earthGroup.position);
 controls.update();
-
+console.log(stars);
 // Earth orbit ring centered on the Sun
 {
   const segments = 256;
@@ -99,6 +98,7 @@ function animate(now = performance.now()) {
   const delta = nextDeltaDays(now);
 
   earth.update(delta);
+  sun.update(delta);
   if (MOON_ROTATION_ENABLED) moon.update(delta);
 
   // update triangle (Sun ↔ Earth ↔ Moon)

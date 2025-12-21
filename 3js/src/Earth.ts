@@ -15,32 +15,31 @@ export default class Earth {
   lightsMesh: THREE.Mesh | null = null;
   atmosphereMesh: THREE.Mesh | null = null;
   static RADIUS = EARTH_RADIUS;
-  // ROTATION_SPEED is expressed in "per day" units to match the delta we pass from the main loop
   static ROTATION_SPEED = perSecondToPerDay(EARTH_ROTATION);
 
   constructor(scene: THREE.Scene) {
     this.earthGroup = new THREE.Group();
-    // apply Earth's obliquity (tilt the group's rotation so the planet and its axis lean)
     this.earthGroup.rotation.z = THREE.MathUtils.degToRad(EARTH_OBLIQUITY_DEG);
     scene.add(this.earthGroup);
 
     const loader = new THREE.TextureLoader();
+
     const earthTex = loader.load("earth.jpg");
     const earthBump = loader.load("earth_bump.png");
     const earthSpeck = loader.load("earth_speck.png");
-    const cloudsTex = loader.load("04_earthcloudmap.png");
-    const cloudsAlpha = loader.load("05_earthcloudmaptrans.png");
-
     const earthGeometry = new THREE.SphereGeometry(Earth.RADIUS, 64, 64);
     const earthMaterial = new THREE.MeshPhongMaterial({
       map: earthTex,
       bumpMap: earthBump,
       specularMap: earthSpeck,
-      bumpScale: 0.04,
+      bumpScale: 4,
+      blending: THREE.AdditiveBlending,
     });
     this.earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
     this.earthGroup.add(this.earthMesh);
 
+    const cloudsTex = loader.load("04_earthcloudmap.png");
+    const cloudsAlpha = loader.load("05_earthcloudmaptrans.png");
     const cloudsMaterial = new THREE.MeshStandardMaterial({
       map: cloudsTex,
       alphaMap: cloudsAlpha,
@@ -55,7 +54,6 @@ export default class Earth {
     this.earthGroup.add(this.cloudsMesh);
 
     const atmosphereMaterial = getFresnelMat();
-    // Render atmosphere additively and ensure it doesn't depth-test/write so it blends over clouds
     atmosphereMaterial.transparent = true;
     (atmosphereMaterial as any).depthWrite = false;
     (atmosphereMaterial as any).depthTest = false;
@@ -63,11 +61,10 @@ export default class Earth {
 
     this.atmosphereMesh = new THREE.Mesh(earthGeometry, atmosphereMaterial);
     this.atmosphereMesh.scale.setScalar(1.01);
-    // render after clouds (clouds use renderOrder = 2)
     this.atmosphereMesh.renderOrder = 3;
     this.earthGroup.add(this.atmosphereMesh);
 
-    // Axis visual for Earth (small line through poles)
+    this.earthMesh.position.set(0, 0, 0);
     {
       const axisLen = Earth.RADIUS * 2.2;
       const axisGeom = new THREE.BufferGeometry();
