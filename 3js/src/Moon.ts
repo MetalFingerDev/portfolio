@@ -88,11 +88,10 @@ export default class Moon {
     }
   }
 
-  // orbit the moon (rotate the orbit group) and spin the moon (self rotation)
+  // orbit the moon (rotate the orbit group) — moon is tidally locked, so no extra local spin
   update(delta = 0.016) {
     // orbit around parent in the inclined plane
     this.orbitGroup.rotation.y += Moon.ORBIT_SPEED * delta;
-    // self-rotation (tidally locked — same average angular speed as orbit)
-    this.moonMesh.rotation.y += Moon.ROTATION_SPEED * delta;
+    // local rotation is intentionally NOT updated so the same lunar face remains pointed toward the parent
   }
 }

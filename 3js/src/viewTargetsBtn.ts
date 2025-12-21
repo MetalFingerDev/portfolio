@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import Earth from "./Earth";
 import Sun from "./Sun";
+import Moon from "./Moon";
 import { STAR_FIELD_RADIUS } from "./units";
 
 export default function ViewTargetsButton(
@@ -15,13 +16,22 @@ export default function ViewTargetsButton(
     _duration?: number,
     onComplete?: () => void
   ) => void,
-  moon?: any
+  moon?: Moon
 ) {
   // compact view list: each item returns [camPos, lookAt, label]
-  const getWorldPos = (mesh: any) => {
+  const getWorldPos = (
+    mesh?: THREE.Object3D | { position: THREE.Vector3 } | null
+  ): THREE.Vector3 => {
     const v = new THREE.Vector3();
-    if (mesh && mesh.getWorldPosition) mesh.getWorldPosition(v);
-    else if (mesh && mesh.position) v.copy(mesh.position);
+    if (!mesh) return v;
+    if (
+      "getWorldPosition" in mesh &&
+      typeof mesh.getWorldPosition === "function"
+    ) {
+      (mesh as THREE.Object3D).getWorldPosition(v);
+    } else if ("position" in mesh) {
+      v.copy((mesh as { position: THREE.Vector3 }).position);
+    }
     return v;
   };
 
@@ -38,9 +48,9 @@ export default function ViewTargetsButton(
           .clone()
           .add(
             new THREE.Vector3(
-              (sun as any).constructor.RADIUS * 4,
+              (sun.constructor as typeof Sun).RADIUS * 4,
               0,
-              (sun as any).constructor.RADIUS * 2
+              (sun.constructor as typeof Sun).RADIUS * 2
             )
           ),
         sunPos,
@@ -52,14 +62,12 @@ export default function ViewTargetsButton(
         moon && moon.moonMesh
           ? getWorldPos(moon.moonMesh)
           : getWorldPos(sun.sunMesh);
-      const offsetX =
-        moon && (moon as any).constructor.RADIUS
-          ? (moon as any).constructor.RADIUS * 2
-          : (sun as any).constructor.RADIUS || 100;
-      const offsetZ =
-        moon && (moon as any).constructor.RADIUS
-          ? (moon as any).constructor.RADIUS
-          : (sun as any).constructor.RADIUS || 50;
+      const moonRadius = moon
+        ? (moon.constructor as typeof Moon).RADIUS
+        : undefined;
+      const sunRadius = (sun.constructor as typeof Sun).RADIUS || 50;
+      const offsetX = moonRadius ? moonRadius * 2 : sunRadius || 100;
+      const offsetZ = moonRadius ? moonRadius : sunRadius || 50;
       return [
         moonPos.clone().add(new THREE.Vector3(offsetX, 0, offsetZ)),
         moonPos,

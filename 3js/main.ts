@@ -24,14 +24,13 @@ const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
 });
-(renderer as any).physicallyCorrectLights = true;
+(
+  renderer as unknown as { physicallyCorrectLights?: boolean }
+).physicallyCorrectLights = true;
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-
-// Feature flags
-const MOON_ROTATION_ENABLED = false; // set to true to enable moon rotation
 
 // handle window resize
 window.addEventListener("resize", () => {
@@ -42,14 +41,14 @@ window.addEventListener("resize", () => {
 
 const sun = new Sun(scene);
 const earth = new Earth(scene);
-const stars = new Stars(scene);
+new Stars(scene);
 const moon = new Moon(scene, earth.earthGroup as THREE.Group);
 
 moon.orbitGroup.rotation.y = Math.PI / 4;
 
 controls.target.copy(earth.earthGroup.position);
 controls.update();
-console.log(stars);
+
 // Earth orbit ring centered on the Sun
 {
   const segments = 256;
@@ -99,7 +98,8 @@ function animate(now = performance.now()) {
 
   earth.update(delta);
   sun.update(delta);
-  if (MOON_ROTATION_ENABLED) moon.update(delta);
+  // Moon orbit (always updated)
+  moon.update(delta);
 
   // update triangle (Sun ↔ Earth ↔ Moon)
   {

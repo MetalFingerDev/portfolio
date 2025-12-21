@@ -17,7 +17,6 @@ export default class Sun {
 
   constructor(scene: THREE.Scene) {
     this.sunGroup = new THREE.Group();
-    this.sunGroup.rotation.z = THREE.MathUtils.degToRad(SUN_AXIS_TILT_DEG);
     scene.add(this.sunGroup);
 
     const sunGeometry = new THREE.SphereGeometry(SUN_RADIUS_SCENE, 64, 64);
@@ -29,6 +28,8 @@ export default class Sun {
       side: THREE.DoubleSide,
     });
     this.sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+    // apply the axis tilt to the Sun's local rotation so its world position remains on the X axis
+    this.sunMesh.rotation.z = THREE.MathUtils.degToRad(SUN_AXIS_TILT_DEG);
     this.sunGroup.add(this.sunMesh);
 
     this.sunMesh.position.set(SUN_DISTANCE_SCENE, 0, 0);

@@ -90,14 +90,24 @@ export function initScene(canvas: HTMLCanvasElement) {
 
   function dispose() {
     // Traverse scene and dispose geometries/materials/textures where applicable
-    scene.traverse((obj: any) => {
-      if (obj.geometry) obj.geometry.dispose?.();
-      if (obj.material) {
-        const m = obj.material;
-        if (Array.isArray(m)) m.forEach((mat) => mat.dispose?.());
-        else m.dispose?.();
+    scene.traverse((obj: THREE.Object3D) => {
+      // Mesh-like objects may have geometry/material
+      const mesh = obj as THREE.Mesh;
+      if (
+        mesh.geometry &&
+        typeof (mesh.geometry as THREE.BufferGeometry).dispose === "function"
+      ) {
+        (mesh.geometry as THREE.BufferGeometry).dispose();
       }
-      if (obj.texture) obj.texture.dispose?.();
+      if (mesh.material) {
+        const m = mesh.material;
+        if (Array.isArray(m))
+          m.forEach((mat) => (mat as THREE.Material).dispose?.());
+        else (m as THREE.Material).dispose?.();
+      }
+      // some objects may expose textures directly
+      const anyObj = obj as unknown as { texture?: { dispose?: () => void } };
+      if (anyObj.texture) anyObj.texture.dispose?.();
     });
     renderer.dispose();
   }

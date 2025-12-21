@@ -55,14 +55,17 @@ export default class Earth {
 
     const atmosphereMaterial = getFresnelMat();
     atmosphereMaterial.transparent = true;
-    (atmosphereMaterial as any).depthWrite = false;
-    (atmosphereMaterial as any).depthTest = false;
-    atmosphereMaterial.blending = THREE.AdditiveBlending;
 
     this.atmosphereMesh = new THREE.Mesh(earthGeometry, atmosphereMaterial);
     this.atmosphereMesh.scale.setScalar(1.01);
     this.atmosphereMesh.renderOrder = 3;
     this.earthGroup.add(this.atmosphereMesh);
+
+    // ensure depth writes/tests are correctly typed on the ShaderMaterial
+    atmosphereMaterial.transparent = true;
+    atmosphereMaterial.depthWrite = false;
+    atmosphereMaterial.depthTest = false;
+    atmosphereMaterial.blending = THREE.AdditiveBlending;
 
     this.earthMesh.position.set(0, 0, 0);
     {
