@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { STAR_FIELD_RADIUS } from "./units";
+import { STAR_FIELD_RADIUS, metersToScene } from "./units";
 import starsData from "./bright-stars.json";
 
 export default class Stars {
@@ -25,14 +25,6 @@ export default class Stars {
     }
 
     const degToRad = (d: number) => (d * Math.PI) / 180;
-    const raDecToXYZ = (raDeg: number, decDeg: number, r: number) => {
-      const ra = degToRad(raDeg);
-      const dec = degToRad(decDeg);
-      const x = r * Math.cos(dec) * Math.cos(ra);
-      const y = r * Math.sin(dec);
-      const z = r * Math.cos(dec) * Math.sin(ra);
-      return [x, y, z];
-    };
 
     function magToSize(mag: number) {
       // tuned for this scene; tweak as needed
@@ -52,21 +44,100 @@ export default class Stars {
     const positions = new Float32Array(n * 3);
     const colors = new Float32Array(n * 3);
     const sizes = new Float32Array(n);
+
+    // Physical conversion helpers
+    const PARSEC_METERS = 3.085677581e16;
+    const parsecToScene = (pc: number) => metersToScene(pc * PARSEC_METERS);
+
+    // Map apparent magnitude to a plausible distance (in scene units)
+    // Using distance modulus assuming an absolute magnitude M = 0 as a simple proxy:
+    //   d(pc) = 10^{(m + 5) / 5}
+    // Convert to scene units exactly: 1 parsec = PARSEC_METERS meters
+    // and 1 scene unit = Earth radius (6371000 m).
+    // So 1 pc ≈ 3.085677581e16 / 6.371e6 ≈ 4.848e9 scene units.
+    const MIN_PARSEC = 1; // don't place stars closer than this (parsecs)
+    // ~4.848e9 scene units per parsec (parsec → meters → scene units)
+
+    function magToDistanceScene(mag: number) {
+      const rawDParsec = Math.pow(10, (mag + 5) / 5);
+      // add scatter so stars aren't all pinned to exact shells
+      const scatter = 0.7 + Math.random() * 1.6; // ~[0.7, 2.3]
+      const dParsec = Math.max(MIN_PARSEC, rawDParsec * scatter);
+      return parsecToScene(dParsec);
+    }
+
+    // Angular separation enforcement (avoid visual overlaps)
+    const minAngularSeparationDeg = 0.02; // min angular separation between placed stars (degrees)
+    const maxPerturbDeg = 0.1; // how much to jitter ra/dec when resolving conflicts
+    const maxAttempts = 12;
+    const minAngularSeparationRad = (minAngularSeparationDeg * Math.PI) / 180;
+    const cosMinSep = Math.cos(minAngularSeparationRad);
+
+    function raDecToUnit(raDeg: number, decDeg: number) {
+      const ra = degToRad(raDeg);
+      const dec = degToRad(decDeg);
+      const x = Math.cos(dec) * Math.cos(ra);
+      const y = Math.sin(dec);
+      const z = Math.cos(dec) * Math.sin(ra);
+      const len = Math.hypot(x, y, z) || 1;
+      return [x / len, y / len, z / len] as [number, number, number];
+    }
+
+    const placedDirs: Array<[number, number, number]> = [];
+
     for (let i = 0; i < n; i++) {
       const s = stars[i];
-      // Spread stars at realistic distances: brighter stars (lower mag) are closer, but scale up for visibility
-      const distanceFactor =
-        Math.max(0.01, 1 - s.mag / 10) * (1 + Math.random() * 9); // vary from 0.01 to 10 times base
-      const r = STAR_FIELD_RADIUS * distanceFactor;
-      const [x, y, z] = raDecToXYZ(s.ra, s.dec, r);
+
+      // start with catalog RA/DEC but allow small perturbations to avoid overlaps
+      let ra = s.ra;
+      let dec = s.dec;
+      let unit = raDecToUnit(ra, dec);
+
+      let attempt = 0;
+      let ok = false;
+      while (attempt < maxAttempts && !ok) {
+        ok = true;
+        for (let j = 0; j < placedDirs.length; j++) {
+          const d = placedDirs[j];
+          const dot = unit[0] * d[0] + unit[1] * d[1] + unit[2] * d[2];
+          if (dot > cosMinSep) {
+            ok = false;
+            break;
+          }
+        }
+        if (!ok) {
+          // jitter the coordinates slightly and retry
+          ra += (Math.random() * 2 - 1) * maxPerturbDeg;
+          dec += (Math.random() * 2 - 1) * maxPerturbDeg;
+          unit = raDecToUnit(ra, dec);
+          attempt++;
+        }
+      }
+
+      // If we couldn't find a non-conflicting direction, keep the best we have and proceed
+      const r = magToDistanceScene(s.mag);
+      const x = unit[0] * r;
+      const y = unit[1] * r;
+      const z = unit[2] * r;
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
+
+      // record placed direction
+      placedDirs.push(unit);
+
       const [cr, cg, cb] = bvToRgb(s.bv ?? 0.65);
       colors[i * 3] = cr;
       colors[i * 3 + 1] = cg;
       colors[i * 3 + 2] = cb;
-      sizes[i] = magToSize(s.mag);
+
+      // size should fall off with distance so bright but far stars don't dominate
+      const baseSize = magToSize(s.mag);
+      const distanceScale = Math.min(
+        1,
+        STAR_FIELD_RADIUS / Math.max(r, STAR_FIELD_RADIUS)
+      );
+      sizes[i] = Math.max(0.25, baseSize * distanceScale);
     }
 
     const geom = new THREE.BufferGeometry();
