@@ -6,10 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-stars": "node ../scripts/generate_stars.js",
+    "download-milkyway": "node ../scripts/download_milkyway.js",
+    "generate-stars:env": "cross-env STARS_INPUT=../data/hip_main.csv STARS_OUT=public/bright-stars.json STARS_MAXMAG=6 node ../scripts/generate_stars.js",
+    "download-milkyway:env": "cross-env MW_URL=https://example.com/milkyway.jpg MW_OUT=public/milkyway.jpg node ../scripts/download_milkyway.js",
+    "prepare-stars": "npm run generate-stars && npm run download-milkyway",
+    "prepare-stars:env": "npm run generate-stars:env && npm run download-milkyway:env"
   },
   "devDependencies": {
     "@types/three": "^0.182.0",
+    "cross-env": "^7.0.3",
+    "csv-parse": "^6.1.0",
     "typescript": "~5.9.3",
     "vite": "npm:rolldown-vite@7.2.5"
   },

@@ -6,7 +6,7 @@ import Earth from "./src/Earth";
 import ViewTargetsButton from "./src/viewTargetsBtn";
 import Stars from "./src/Stars";
 import Moon from "./src/Moon";
-import { nextDeltaDays } from "./src/units";
+import { nextDeltaDays, SUN_DISTANCE_SCENE } from "./src/units";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -46,8 +46,50 @@ const earth = new Earth(scene);
 new Stars(scene, 4000);
 // add the moon as a child of the Earth group so it orbits the Earth
 const moon = new Moon(scene, earth.earthGroup as THREE.Group);
+// set initial orbital phase (radians) — example: Math.PI / 4 === 45°
+moon.orbitGroup.rotation.y = Math.PI / 4;
 controls.target.copy(earth.earthGroup.position);
 controls.update();
+
+// Earth orbit ring centered on the Sun
+{
+  const segments = 256;
+  const positions = new Float32Array(segments * 3);
+  for (let i = 0; i < segments; i++) {
+    const t = (i / segments) * Math.PI * 2;
+    positions[i * 3] = Math.sin(t) * SUN_DISTANCE_SCENE;
+    positions[i * 3 + 1] = 0;
+    positions[i * 3 + 2] = Math.cos(t) * SUN_DISTANCE_SCENE;
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  const mat = new THREE.LineBasicMaterial({
+    color: 0x66ccff,
+    transparent: true,
+    opacity: 0.18,
+    depthTest: false,
+  });
+  const earthOrbit = new THREE.LineLoop(geom, mat);
+  // position the orbit so it's centered on the Sun's world position
+  earthOrbit.position.copy(sun.sunMesh.position);
+  scene.add(earthOrbit);
+}
+
+// triangle connecting Sun, Earth and Moon centers (updates per-frame)
+const triangleGeom = new THREE.BufferGeometry();
+const triPositions = new Float32Array(9);
+triangleGeom.setAttribute(
+  "position",
+  new THREE.BufferAttribute(triPositions, 3)
+);
+const triMat = new THREE.LineBasicMaterial({
+  color: 0xffaa66,
+  transparent: true,
+  opacity: 0.6,
+  depthTest: false,
+});
+const triangle = new THREE.LineLoop(triangleGeom, triMat);
+scene.add(triangle);
 
 // simple animate loop (delta expressed in days: 1 = 1 astronomical day)
 function animate(now = performance.now()) {
@@ -58,6 +100,31 @@ function animate(now = performance.now()) {
 
   earth.update(delta);
   if (MOON_ROTATION_ENABLED) moon.update(delta);
+
+  // update triangle (Sun ↔ Earth ↔ Moon)
+  {
+    const posAttr = triangle.geometry.getAttribute(
+      "position"
+    ) as THREE.BufferAttribute;
+    const arr = posAttr.array as Float32Array;
+    const sunPos = new THREE.Vector3();
+    sun.sunMesh.getWorldPosition(sunPos);
+    const earthPos = new THREE.Vector3();
+    earth.earthGroup.getWorldPosition(earthPos);
+    const moonPos = new THREE.Vector3();
+    moon.moonMesh.getWorldPosition(moonPos);
+    arr[0] = sunPos.x;
+    arr[1] = sunPos.y;
+    arr[2] = sunPos.z;
+    arr[3] = earthPos.x;
+    arr[4] = earthPos.y;
+    arr[5] = earthPos.z;
+    arr[6] = moonPos.x;
+    arr[7] = moonPos.y;
+    arr[8] = moonPos.z;
+    posAttr.needsUpdate = true;
+  }
+
   controls.update();
   renderer.render(scene, camera);
 }

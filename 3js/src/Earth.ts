@@ -1,6 +1,11 @@
 import * as THREE from "three";
 
-import { EARTH_RADIUS, EARTH_ROTATION, perSecondToPerDay } from "./units";
+import {
+  EARTH_RADIUS,
+  EARTH_ROTATION,
+  perSecondToPerDay,
+  EARTH_OBLIQUITY_DEG,
+} from "./units";
 import { getFresnelMat } from "./getFresnelMat.js";
 
 export default class Earth {
@@ -15,6 +20,8 @@ export default class Earth {
 
   constructor(scene: THREE.Scene) {
     this.earthGroup = new THREE.Group();
+    // apply Earth's obliquity (tilt the group's rotation so the planet and its axis lean)
+    this.earthGroup.rotation.z = THREE.MathUtils.degToRad(EARTH_OBLIQUITY_DEG);
     scene.add(this.earthGroup);
 
     const loader = new THREE.TextureLoader();
@@ -59,6 +66,27 @@ export default class Earth {
     // render after clouds (clouds use renderOrder = 2)
     this.atmosphereMesh.renderOrder = 3;
     this.earthGroup.add(this.atmosphereMesh);
+
+    // Axis visual for Earth (small line through poles)
+    {
+      const axisLen = Earth.RADIUS * 2.2;
+      const axisGeom = new THREE.BufferGeometry();
+      axisGeom.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(
+          [0, axisLen / 2, 0, 0, -axisLen / 2, 0],
+          3
+        )
+      );
+      const axisMat = new THREE.LineBasicMaterial({
+        color: 0xff0000,
+        transparent: true,
+        opacity: 0.85,
+      });
+      const axis = new THREE.Line(axisGeom, axisMat);
+      // attach to the mesh so it rotates with the planet's spin
+      this.earthMesh.add(axis);
+    }
   }
 
   update(delta = 0.016) {

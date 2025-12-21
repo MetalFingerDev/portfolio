@@ -24,15 +24,28 @@ export const MOON_RADIUS_METERS = 1737400; // meters
 export const MOON_RADIUS = metersToScene(MOON_RADIUS_METERS);
 export const MOON_DISTANCE_METERS = 384400000; // average distance to moon in meters
 export const MOON_DISTANCE_SCENE = metersToScene(MOON_DISTANCE_METERS);
-export const MOON_ROTATION = 0.02; // arbitrary orbital speed (scene units per second)
 
 // Time unit helpers
 export const SECONDS_PER_DAY = 86400; // 1 astronomical day in seconds
 
+// Orbital parameters (realistic values)
+export const MOON_ORBIT_INCLINATION_DEG = 5.145; // degrees relative to ecliptic
+export const MOON_ORBITAL_PERIOD_DAYS = 27.321661; // sidereal month (days)
+export const MOON_ORBITAL_PERIOD_SECONDS =
+  MOON_ORBITAL_PERIOD_DAYS * SECONDS_PER_DAY;
+export const MOON_ORBIT_SPEED = (2 * Math.PI) / MOON_ORBITAL_PERIOD_SECONDS; // radians per second
+
+// Moon rotation (spin) — Moon is tidally locked so rotation ≈ orbital angular speed
+export const MOON_ROTATION = MOON_ORBIT_SPEED;
+
+// Axial tilts (degrees)
+export const EARTH_OBLIQUITY_DEG = 23.439281; // Earth's axial tilt (obliquity)
+export const MOON_AXIS_TILT_DEG = 6.68; // Moon's axis tilt (approx.)
+export const SUN_AXIS_TILT_DEG = 7.25; // Sun axis tilt relative to ecliptic (approx.)
+
 export const msToDays = (ms: number) => ms / 1000 / SECONDS_PER_DAY;
 
 export const perSecondToPerDay = (v: number) => v * SECONDS_PER_DAY;
-
 
 let _lastPerf = performance.now();
 
