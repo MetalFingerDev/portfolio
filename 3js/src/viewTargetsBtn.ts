@@ -4,7 +4,7 @@ import Earth from "./Earth";
 import Sun from "./Sun";
 import { STAR_FIELD_RADIUS } from "./units";
 
-export default function setupViewTargetsButton(
+export default function ViewTargetsButton(
   viewBtn: HTMLButtonElement,
   controls: OrbitControls,
   earth: Earth,
@@ -14,57 +14,74 @@ export default function setupViewTargetsButton(
     lookAt: THREE.Vector3,
     _duration?: number,
     onComplete?: () => void
-  ) => void
+  ) => void,
+  moon?: any
 ) {
-  // 0 = Earth, 1 = Sun, 2 = Stars
-  let state = 0;
+  // compact view list: each item returns [camPos, lookAt, label]
+  const getWorldPos = (mesh: any) => {
+    const v = new THREE.Vector3();
+    if (mesh && mesh.getWorldPosition) mesh.getWorldPosition(v);
+    else if (mesh && mesh.position) v.copy(mesh.position);
+    return v;
+  };
 
-  function goToEarth() {
-    const cam = new THREE.Vector3(0, 0, 3);
-    const target = earth.earthMesh.position.clone();
-    animateCameraTo(cam, target, 800, () => {
-      controls.target.copy(target);
-      controls.update();
-    });
-    viewBtn.textContent = "View Sun";
-    state = 0;
-  }
+  const views: Array<() => [THREE.Vector3, THREE.Vector3, string]> = [
+    () => [
+      new THREE.Vector3(0, 0, 3),
+      earth.earthMesh.position.clone(),
+      "View Sun",
+    ],
+    () => {
+      const sunPos = getWorldPos(sun.sunMesh);
+      return [
+        sunPos
+          .clone()
+          .add(
+            new THREE.Vector3(
+              (sun as any).constructor.RADIUS * 4,
+              0,
+              (sun as any).constructor.RADIUS * 2
+            )
+          ),
+        sunPos,
+        "View Moon",
+      ];
+    },
+    () => {
+      const moonPos =
+        moon && moon.moonMesh
+          ? getWorldPos(moon.moonMesh)
+          : getWorldPos(sun.sunMesh);
+      const offsetX =
+        moon && (moon as any).constructor.RADIUS
+          ? (moon as any).constructor.RADIUS * 2
+          : (sun as any).constructor.RADIUS || 100;
+      const offsetZ =
+        moon && (moon as any).constructor.RADIUS
+          ? (moon as any).constructor.RADIUS
+          : (sun as any).constructor.RADIUS || 50;
+      return [
+        moonPos.clone().add(new THREE.Vector3(offsetX, 0, offsetZ)),
+        moonPos,
+        "View Stars",
+      ];
+    },
+    () => [
+      new THREE.Vector3(STAR_FIELD_RADIUS * 0.98, 0, STAR_FIELD_RADIUS * 0.02),
+      new THREE.Vector3(0, 0, 0),
+      "Back to Earth",
+    ],
+  ];
 
-  function goToSun() {
-    const cam = sun.sunMesh.position
-      .clone()
-      .add(new THREE.Vector3(SUN_RADIUS_SCENE * 4, 0, SUN_RADIUS_SCENE * 2));
-    const target = sun.sunMesh.position.clone();
-    animateCameraTo(cam, target, 800, () => {
-      controls.target.copy(target);
-      controls.update();
-    });
-    viewBtn.textContent = "View Stars";
-    state = 1;
-  }
-
-  function goToStars() {
-    // place camera near the star field shell on +X side and look inward
-    const cam = new THREE.Vector3(
-      STAR_FIELD_RADIUS * 0.98,
-      0,
-      STAR_FIELD_RADIUS * 0.02
-    );
-    const target = new THREE.Vector3(0, 0, 0);
-    animateCameraTo(cam, target, 800, () => {
-      controls.target.copy(target);
-      controls.update();
-    });
-    viewBtn.textContent = "Back to Earth";
-    state = 2;
-  }
-
-  // ensure we reference SUN_RADIUS_SCENE without importing directly (avoid duplicate constant imports)
-  const SUN_RADIUS_SCENE = (Sun as any).RADIUS || 109;
-
+  let idx = 0;
+  viewBtn.textContent = views[0]()[2];
   viewBtn.addEventListener("click", () => {
-    if (state === 0) goToSun();
-    else if (state === 1) goToStars();
-    else goToEarth();
+    idx = (idx + 1) % views.length;
+    const [cam, lookAt, label] = views[idx]();
+    animateCameraTo(cam, lookAt, 800, () => {
+      controls.target.copy(lookAt);
+      controls.update();
+    });
+    viewBtn.textContent = label;
   });
 }

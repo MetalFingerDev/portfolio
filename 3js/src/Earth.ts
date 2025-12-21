@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { EARTH_RADIUS, EARTH_ROTATION } from "./units";
+import { EARTH_RADIUS, EARTH_ROTATION, perSecondToPerDay } from "./units";
 import { getFresnelMat } from "./getFresnelMat.js";
 
 export default class Earth {
@@ -10,7 +10,8 @@ export default class Earth {
   lightsMesh: THREE.Mesh | null = null;
   atmosphereMesh: THREE.Mesh | null = null;
   static RADIUS = EARTH_RADIUS;
-  static ROTATION_SPEED = EARTH_ROTATION;
+  // ROTATION_SPEED is expressed in "per day" units to match the delta we pass from the main loop
+  static ROTATION_SPEED = perSecondToPerDay(EARTH_ROTATION);
 
   constructor(scene: THREE.Scene) {
     this.earthGroup = new THREE.Group();
@@ -38,7 +39,6 @@ export default class Earth {
       alphaMap: cloudsAlpha,
       transparent: true,
       opacity: 0.7,
-      side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });

@@ -3,8 +3,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import Sun from "./src/Sun";
 import Earth from "./src/Earth";
-import setupViewTargetsButton from "./src/viewTargetsBtn";
+import ViewTargetsButton from "./src/viewTargetsBtn";
 import Stars from "./src/Stars";
+import Moon from "./src/Moon";
+import { nextDeltaDays } from "./src/units";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -28,7 +30,8 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 
-renderer.render(scene, camera);
+// Feature flags
+const MOON_ROTATION_ENABLED = false; // set to true to enable moon rotation
 
 // handle window resize
 window.addEventListener("resize", () => {
@@ -40,16 +43,21 @@ window.addEventListener("resize", () => {
 const sun = new Sun(scene);
 const earth = new Earth(scene);
 // add star field (debug shell on so you can see it immediately)
-const stars = new Stars(scene, 4000);
-console.log(stars);
+new Stars(scene, 4000);
+// add the moon as a child of the Earth group so it orbits the Earth
+const moon = new Moon(scene, earth.earthGroup as THREE.Group);
 controls.target.copy(earth.earthGroup.position);
 controls.update();
 
-// simple animate loop
-function animate() {
+// simple animate loop (delta expressed in days: 1 = 1 astronomical day)
+function animate(now = performance.now()) {
   requestAnimationFrame(animate);
 
-  earth.update();
+  // get delta in 'days' from units helper (clamps internally)
+  const delta = nextDeltaDays(now);
+
+  earth.update(delta);
+  if (MOON_ROTATION_ENABLED) moon.update(delta);
   controls.update();
   renderer.render(scene, camera);
 }
@@ -73,8 +81,8 @@ const animateCameraTo = (
   if (onComplete) onComplete();
 };
 
-// Wire up the view button (cycles Earth → Sun → Stars)
-setupViewTargetsButton(viewSunBtn, controls, earth, sun, animateCameraTo);
+// Wire up the view button (cycles Earth → Sun → Moon → Stars)
+ViewTargetsButton(viewSunBtn, controls, earth, sun, animateCameraTo, moon);
 
 // start render loop
 animate();

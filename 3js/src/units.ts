@@ -18,3 +18,30 @@ export const SUN_DISTANCE_SCENE = metersToScene(SUN_DISTANCE_METERS);
 
 // Star field radius (scene units). Placed beyond the Sun distance so stars appear at infinity.
 export const STAR_FIELD_RADIUS = SUN_DISTANCE_SCENE * 3;
+
+// Moon constants
+export const MOON_RADIUS_METERS = 1737400; // meters
+export const MOON_RADIUS = metersToScene(MOON_RADIUS_METERS);
+export const MOON_DISTANCE_METERS = 384400000; // average distance to moon in meters
+export const MOON_DISTANCE_SCENE = metersToScene(MOON_DISTANCE_METERS);
+export const MOON_ROTATION = 0.02; // arbitrary orbital speed (scene units per second)
+
+// Time unit helpers
+export const SECONDS_PER_DAY = 86400; // 1 astronomical day in seconds
+
+export const msToDays = (ms: number) => ms / 1000 / SECONDS_PER_DAY;
+
+export const perSecondToPerDay = (v: number) => v * SECONDS_PER_DAY;
+
+
+let _lastPerf = performance.now();
+
+export function nextDeltaDays(now = performance.now()) {
+  const dtMs = Math.min(now - _lastPerf, 1000);
+  _lastPerf = now;
+  return msToDays(dtMs);
+}
+
+export function resetDeltaClock(now = performance.now()) {
+  _lastPerf = now;
+}
