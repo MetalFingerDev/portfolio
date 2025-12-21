@@ -19,33 +19,27 @@ export function initScene(canvas: HTMLCanvasElement) {
   camera.position.setZ(30);
   camera.position.setX(-3);
 
-  // Torus
   const geometry = new THREE.TorusGeometry(10, 3, 16, 100);
   const material = new THREE.MeshStandardMaterial({ color: 0xff6347 });
   const torus = new THREE.Mesh(geometry, material);
   scene.add(torus);
 
-  // Lights
   const pointLight = new THREE.PointLight(0xffffff);
   pointLight.position.set(5, 5, 5);
   const ambientLight = new THREE.AmbientLight(0xffffff);
   scene.add(pointLight, ambientLight);
 
-  // Stars
   Array.from({ length: 200 }).forEach(() => addStar(scene));
 
-  // Background
   const spaceTexture = new THREE.TextureLoader().load("space.jpg");
   scene.background = spaceTexture;
 
-  // Jeff & Moon
   const jeff = createJeff();
   scene.add(jeff);
 
   const moon = createMoon();
   scene.add(moon);
 
-  // Animation state
   let raf = 0;
 
   function moveCamera() {

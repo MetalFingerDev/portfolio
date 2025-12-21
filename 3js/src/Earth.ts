@@ -1,7 +1,6 @@
 import * as THREE from "three";
 
-export const EARTH_RADIUS = 1;
-export const EARTH_RADIUS_KM = 6371;
+import { EARTH_RADIUS, EARTH_ROTATION } from "./units";
 
 export default class Earth {
   earthMesh: THREE.Mesh;
@@ -9,64 +8,42 @@ export default class Earth {
   cloudsMesh: THREE.Mesh | null = null;
   lightsMesh: THREE.Mesh | null = null;
   static RADIUS = EARTH_RADIUS;
-  static ROTATION_SPEED = 0.1;
+  static ROTATION_SPEED = EARTH_ROTATION;
 
   constructor(scene: THREE.Scene) {
     this.earthGroup = new THREE.Group();
+    scene.add(this.earthGroup);
 
     const loader = new THREE.TextureLoader();
     const earthTex = loader.load("earth.jpg");
-    const lightsTex = loader.load("03_earthlights1k.png");
+    const earthBump = loader.load("earth_bump.png");
+    const earthSpeck = loader.load("earth_speck.png");
     const cloudsTex = loader.load("04_earthcloudmap.png");
     const cloudsAlpha = loader.load("05_earthcloudmaptrans.png");
 
-    // Create Earth mesh
-    const earthGeometry = new THREE.SphereGeometry(EARTH_RADIUS, 64, 64);
-    const earthMaterial = new THREE.MeshStandardMaterial({ map: earthTex });
+    const earthGeometry = new THREE.SphereGeometry(Earth.RADIUS, 64, 64);
+    const earthMaterial = new THREE.MeshPhongMaterial({
+      map: earthTex,
+      bumpMap: earthBump,
+      specularMap: earthSpeck,
+      bumpScale: 0.04,
+    });
     this.earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
     this.earthGroup.add(this.earthMesh);
 
-    // Create lights (night map)
-    const lightsGeometry = new THREE.SphereGeometry(
-      EARTH_RADIUS * 1.002,
-      64,
-      64
-    );
-    const lightsMaterial = new THREE.MeshBasicMaterial({
-      map: lightsTex,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      opacity: 0.6,
-    });
-    this.lightsMesh = new THREE.Mesh(lightsGeometry, lightsMaterial);
-    this.lightsMesh.renderOrder = 1;
-    this.earthGroup.add(this.lightsMesh);
-
-    // Create clouds mesh
-    const cloudScale = 1 + 12 / EARTH_RADIUS_KM;
-    const cloudsGeometry = new THREE.SphereGeometry(
-      EARTH_RADIUS * cloudScale,
-      64,
-      64
-    );
     const cloudsMaterial = new THREE.MeshStandardMaterial({
       map: cloudsTex,
       alphaMap: cloudsAlpha,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.7,
       side: THREE.DoubleSide,
-      blending: THREE.NormalBlending,
+      blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    this.cloudsMesh = new THREE.Mesh(cloudsGeometry, cloudsMaterial);
+    this.cloudsMesh = new THREE.Mesh(earthGeometry, cloudsMaterial);
     this.cloudsMesh.renderOrder = 2;
+    this.cloudsMesh.scale.setScalar(1.003);
     this.earthGroup.add(this.cloudsMesh);
-
-    // Add to scene and set axial tilt
-    scene.add(this.earthGroup);
-    this.earthGroup.rotation.z = THREE.MathUtils.degToRad(23.44);
   }
 
   update(delta = 0.016) {

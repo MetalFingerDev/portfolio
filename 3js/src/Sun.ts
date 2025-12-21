@@ -1,48 +1,38 @@
 import * as THREE from "three";
 
-// Units: 1 scene unit == 1 Earth radius (6371 km)
-export const SUN_RADIUS = 109; // Sun radius in Earth-radius units
-export const SUN_DISTANCE_UNITS = 23500; // Average Sun-Earth distance in Earth-radius units
-export const DISTANCE_SCALE = 1; // change this to compress distances for visualization
+import { SUN_DISTANCE_SCENE, SUN_RADIUS_SCENE } from "./units";
 
+// Units: scene unit = 1 Earth radius (see `units.ts`)
 export default class Sun {
-  mesh: THREE.Mesh;
-  light: THREE.DirectionalLight;
-  corona: THREE.Sprite | null = null;
-  static RADIUS = SUN_RADIUS;
-  static ROTATION_SPEED = 0.004; // Realistic: ~1/25th of Earth's speed
+  sunMesh: THREE.Mesh;
+  sunGroup: THREE.Group;
+  sunLight: THREE.PointLight;
+  static RADIUS = SUN_RADIUS_SCENE;
 
   constructor(scene: THREE.Scene) {
-    this.mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(Sun.RADIUS, 64, 64),
-      new THREE.MeshStandardMaterial({
-        color: 0x000000,
-        emissive: 0xffffff,
-        roughness: 1,
-        metalness: 0,
-      })
-    );
-    this.mesh.position.set(SUN_DISTANCE_UNITS / DISTANCE_SCALE, 0, 0);
-    this.mesh.castShadow = this.mesh.receiveShadow = false;
-    scene.add(this.mesh);
+    this.sunGroup = new THREE.Group();
+    this.sunGroup.position.set(0, 0, 0);
+    scene.add(this.sunGroup);
 
-    
-    this.light = new THREE.DirectionalLight(0xffffff, 3);
-    this.light.castShadow = false;
-    this.light.layers.disable(1);
-    this.light.target.position.set(-1, 0, 0);
-    this.light.position.set(SUN_DISTANCE_UNITS / DISTANCE_SCALE, 0, 0);
-    this.mesh.add(this.light.target);
-    scene.add(this.light);
+    const sunGeometry = new THREE.SphereGeometry(SUN_RADIUS_SCENE, 64, 64);
+    const sunMaterial = new THREE.MeshStandardMaterial({
+      color: 0x000000,
+      emissive: 0xffffff,
+      roughness: 1,
+      metalness: 0,
+      side: THREE.DoubleSide,
+    });
+    this.sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+    this.sunGroup.add(this.sunMesh);
 
-    this.mesh.layers.enable(1);
-  }
+    this.sunMesh.position.set(SUN_DISTANCE_SCENE, 0, 0);
+    this.sunMesh.castShadow = this.sunMesh.receiveShadow = false;
 
-  get position() {
-    return this.mesh.position;
-  }
+    // Physically-based point light using real solar illuminance and inverse-square decay
+    this.sunLight = new THREE.PointLight(0xffffff, 1000000000, 0, 2);
+    this.sunGroup.add(this.sunLight);
+    this.sunLight.position.copy(this.sunMesh.position);
 
-  update(delta = 0.016) {
-    this.mesh.rotation.y += Sun.ROTATION_SPEED * delta;
+    this.sunMesh.layers.enable(1);
   }
 }
