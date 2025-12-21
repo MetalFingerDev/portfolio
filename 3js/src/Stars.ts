@@ -76,8 +76,8 @@ export default class Stars {
 
     const mat = new THREE.ShaderMaterial({
       transparent: true,
-      depthWrite: false,
-      depthTest: false,
+      depthWrite: false, // don't write to depth buffer so stars don't occlude nearer objects
+      depthTest: true, // enable depth testing so stars are occluded by closer scene objects
       blending: THREE.AdditiveBlending,
       vertexColors: true,
       uniforms: { scale: { value: window.devicePixelRatio } },
@@ -96,8 +96,11 @@ export default class Stars {
         varying vec3 vColor;
         void main() {
           float d = length(gl_PointCoord - vec2(0.5));
-          if (d > 0.5) discard;
-          gl_FragColor = vec4(vColor, 1.0);
+          // soft circular falloff for smoother edges and better blending
+          float alpha = 1.0 - smoothstep(0.0, 0.5, d);
+          if (alpha < 0.01) discard;
+          // modulate color by alpha to avoid bright halos
+          gl_FragColor = vec4(vColor * alpha, alpha);
         }
       `,
     });
