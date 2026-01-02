@@ -5,7 +5,7 @@ import {
   EARTH_ROTATION,
   perSecondToPerDay,
   EARTH_OBLIQUITY_DEG,
-} from "./units";
+} from "./units.js";
 import { getFresnelMat } from "./getFresnelMat.js";
 
 export default class Earth {

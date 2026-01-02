@@ -1,44 +1,108 @@
 import "./style.css";
-import ViewTargetsButton from "./src/viewTargetsBtn";
-import { nextDeltaDays } from "./src/units";
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import { SolarSystem } from "./src/Scene";
-import { OrbitingSpaceShip } from "./src/Ship";
-import Render from "./src/Render";
+import { WORLD_CONFIG, SceneLevel } from "./newnits";
 
+import { MilkyWay } from "./MilkyWay";
+import { LocalFluff } from "./LocalFluff";
+import { SolarSystem } from "./SolarSystem";
+import { LocalGroup } from "./LocalGroup";
+import { Laniakea } from "./Laniakea";
 
-const { space, sun, earth, moon } = SolarSystem();
+const canvas = document.querySelector("#bg") as HTMLCanvasElement;
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  logarithmicDepthBuffer: true,
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
 
-const canvas = document.querySelector("#bg") as HTMLCanvasElement | null;
-if (!canvas) throw new Error('Canvas element with id "bg" not found');
-
-const renderer = new Render(canvas);
-const { controls, move } = new OrbitingSpaceShip(
-  renderer.domElement,
-  earth.earthGroup.position
+const space = new THREE.Scene();
+const ship = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  999999999
 );
+ship.position.set(0, 2, 150);
 
-moon.orbitGroup.rotation.y = Math.PI / 4;
+const controls = new OrbitControls(ship, canvas);
+controls.enableDamping = true;
 
-function animate(now = performance.now()) {
-  requestAnimationFrame(animate);
+const levels = {
+  [SceneLevel.SOLAR_SYSTEM]: new SolarSystem(),
+  [SceneLevel.LOCAL_FLUFF]: new LocalFluff(), // Inserted here
+  [SceneLevel.GALAXY]: new MilkyWay(),
+  [SceneLevel.LOCAL_GROUP]: new LocalGroup(),
+  [SceneLevel.LANIAKEA]: new Laniakea(),
+};
 
-  const delta = nextDeltaDays(now);
+let currentLevel = SceneLevel.SOLAR_SYSTEM;
 
-  earth.update(delta);
-  sun.update(delta);
-  moon.update(delta);
+Object.keys(levels).forEach((key) => {
+  const levelKey = Number(key) as SceneLevel;
+  const group = levels[levelKey].group;
+  space.add(group);
+  group.visible = levelKey === currentLevel;
+});
 
+const light = new THREE.AmbientLight(0xffffff, 5.0);
+space.add(light);
+
+function performSnap(targetLevel: SceneLevel) {
+  const currentCfg = WORLD_CONFIG[currentLevel];
+  const targetCfg = WORLD_CONFIG[targetLevel];
+
+  // Calculate the scaling factor between the two levels
+  // This ensures your "Real Distance" stays the same after the jump
+  const factor = currentCfg.Ratio! / targetCfg.Ratio!;
+
+  // Scale both the ship AND the orbit target
+  ship.position.multiplyScalar(factor);
+  controls.target.multiplyScalar(factor);
+
+  // Toggle Visibility
+  levels[currentLevel].group.visible = false;
+  levels[targetLevel].group.visible = true;
+
+  currentLevel = targetLevel;
+
+  // Important: Update controls so the new target/position are registered
   controls.update();
-  renderer.render(space, Or);
 }
 
-const viewSunBtn = document.createElement("button");
-viewSunBtn.textContent = "View Sun";
-viewSunBtn.className = "view-sun-btn";
-document.body.appendChild(viewSunBtn);
+function animate() {
+  requestAnimationFrame(animate);
+  const distance = ship.position.length();
+  const cfg = WORLD_CONFIG[currentLevel];
 
-ViewTargetsButton(viewSunBtn, controls, earth, sun, move, moon);
+  // 1. Zooming OUT logic
+  if (cfg.Dist && distance > cfg.Dist && currentLevel < SceneLevel.LANIAKEA) {
+    performSnap(currentLevel + 1);
+  }
 
-// render loop
+  // 2. Zooming IN logic (The Fix)
+  if (currentLevel > SceneLevel.SOLAR_SYSTEM) {
+    const prevLevel = (currentLevel - 1) as SceneLevel;
+    const prevCfg = WORLD_CONFIG[prevLevel];
+
+    const snapBackBoundary =
+      (prevCfg.Dist || 0) * (prevCfg.Ratio! / cfg.Ratio!);
+
+    if (distance < snapBackBoundary * 0.9) {
+      performSnap(prevLevel);
+    }
+  }
+
+  controls.update();
+  renderer.render(space, ship);
+}
+
+window.addEventListener("resize", () => {
+  ship.aspect = window.innerWidth / window.innerHeight;
+  ship.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 animate();

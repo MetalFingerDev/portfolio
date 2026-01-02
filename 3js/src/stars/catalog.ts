@@ -1,4 +1,4 @@
-import { StarEntry } from "./types";
+import type { StarEntry } from "./types";
 
 // Parse a simple TSV/CSV star catalog into StarEntry[]
 export function parseCatalog(text: string): StarEntry[] {

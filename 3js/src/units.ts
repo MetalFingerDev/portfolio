@@ -19,6 +19,11 @@ export const SUN_DISTANCE_SCENE = metersToScene(SUN_DISTANCE_METERS);
 // Star field radius (scene units). Placed beyond the Sun distance so stars appear at infinity.
 export const STAR_FIELD_RADIUS = SUN_DISTANCE_SCENE * 3;
 
+// Milky Way size — user requested a width of 6,000,000,000,000 AU
+export const MILKY_WAY_WIDTH_AU = 6_000_000_000_000; // 6 trillion AU
+export const MILKY_WAY_WIDTH_METERS = AU_METERS * MILKY_WAY_WIDTH_AU;
+export const MILKY_WAY_WIDTH_SCENE = metersToScene(MILKY_WAY_WIDTH_METERS);
+
 // Moon constants
 export const MOON_RADIUS_METERS = 1737400; // meters
 export const MOON_RADIUS = metersToScene(MOON_RADIUS_METERS);

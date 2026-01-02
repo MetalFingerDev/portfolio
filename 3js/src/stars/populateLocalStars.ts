@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { STAR_FIELD_RADIUS, metersToScene } from "../units";
-import { StarEntry } from "./types";
+import type { StarEntry } from "./types";
 import Stars from "../Stars";
 
 const PARSEC_METERS = 3.085677581e16;
