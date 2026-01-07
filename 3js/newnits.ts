@@ -15,30 +15,30 @@ interface LevelConfig {
 
 export const WORLD_CONFIG: Record<SceneLevel, LevelConfig> = {
   [SceneLevel.SOLAR_SYSTEM]: {
-    Dist: 10000, // Threshold to exit Solar System
-    Ratio: 1, // Planet distances are multiplied by this
+    Dist: 10000,
+    Ratio: 1,
     Scale: 1,
   },
   [SceneLevel.LOCAL_FLUFF]: {
-    Dist: 10000, // Snap to Galaxy at 5k
-    Ratio: 10, // Shrunk 100x
+    Dist: 10000,
+    Ratio: 10,
     Scale: 1,
   },
   [SceneLevel.GALAXY]: {
-    Dist: 5000, // Threshold to exit Galaxy
-    Ratio: 100, // Galaxy stars/details scale
+    Dist: 5000,
+    Ratio: 100,
     Scale: 10,
     Offset: 2000,
   },
   [SceneLevel.LOCAL_GROUP]: {
     Dist: 50000,
-    Ratio: 100, // <--- This needs to be LARGE so galaxies aren't at 0,0,0
-    Scale: 1000, // <--- This needs to be LARGE so the models are visible
+    Ratio: 100,
+    Scale: 10,
     Offset: 0,
   },
   [SceneLevel.LANIAKEA]: {
-    Dist: 200000, // Final boundary
-    Ratio: 10000, // 100x jump from Local Group
+    Dist: 200000,
+    Ratio: 10000,
     Scale: 1,
   },
 };
