@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { WORLD_CONFIG, SceneLevel } from "./newnits";
+import { WORLD_CONFIG, SceneLevel } from "./config";
 
 export class LocalGroup {
   public group: THREE.Group = new THREE.Group();

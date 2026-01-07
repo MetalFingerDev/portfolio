@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { WORLD_CONFIG, SceneLevel } from "./newnits";
+import { CONFIG, Region } from "./config";
 
 export class MilkyWay {
   public group: THREE.Group = new THREE.Group();
@@ -11,10 +11,7 @@ export class MilkyWay {
     loader.load("/milky_way/scene.gltf", (gltf) => {
       this.model = gltf.scene;
 
-      const cfg = WORLD_CONFIG[SceneLevel.GALAXY];
-
-      const s = cfg.Scale!;
-      this.model.scale.set(s, s, s);
+      const cfg = CONFIG[Region.GALAXY];
 
       this.model.position.x = -cfg.Offset!;
 

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { WORLD_CONFIG, SceneLevel } from "./newnits";
+import { CONFIG, Region } from "./config";
 
 const PLANET_DATA = [
   { name: "Mercury", color: 0xaaaaaa, size: 0.38, distance: 4 },
@@ -14,10 +14,9 @@ const PLANET_DATA = [
 
 export class SolarSystem {
   public group: THREE.Group = new THREE.Group();
-  private cfg = WORLD_CONFIG[SceneLevel.SOLAR_SYSTEM];
+  private cfg = CONFIG[Region.SOLAR_SYSTEM];
 
   constructor() {
-    // Apply the Offset from config if it exists
     this.group.position.x = this.cfg.Offset || 0;
 
     this.createSun();
@@ -25,13 +24,11 @@ export class SolarSystem {
   }
 
   private createSun() {
-    // Scale the Sun's visual size
-    const sunSize = 2.5 * (this.cfg.Scale || 1);
+    const sunSize = 2.5;
     const geometry = new THREE.SphereGeometry(sunSize, 32, 32);
     const material = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
     const sun = new THREE.Mesh(geometry, material);
 
-    // Light range should also respect the Ratio
     const light = new THREE.PointLight(
       0xffffff,
       2,
@@ -45,15 +42,11 @@ export class SolarSystem {
   private createPlanets() {
     const sphereSegments = 32;
     const ratio = this.cfg.Ratio || 1;
-    const scale = this.cfg.Scale || 1;
 
     PLANET_DATA.forEach((data) => {
-      // 1. Calculate scaled size and distance
-      const scaledSize = data.size * 0.5 * scale;
       const scaledDistance = data.distance * ratio;
 
       const geometry = new THREE.SphereGeometry(
-        scaledSize,
         sphereSegments,
         sphereSegments
       );
@@ -64,10 +57,8 @@ export class SolarSystem {
       });
       const planet = new THREE.Mesh(geometry, material);
 
-      // 2. Set the scaled position
       planet.position.set(scaledDistance, 0, 0);
 
-      // 3. Create the scaled orbit
       const orbit = this.createOrbit(scaledDistance);
 
       this.group.add(planet);
