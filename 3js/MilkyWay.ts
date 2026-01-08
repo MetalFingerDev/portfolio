@@ -1,22 +1,35 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { Config } from "./config";
+import { getModel } from "./utils";
+import { type data, type region } from "./config";
 
-export class MilkyWay {
+export class MilkyWay implements region {
   public group: THREE.Group = new THREE.Group();
   private model: THREE.Group | null = null;
-  public cfg: Config;
+  public cfg: data;
 
-  constructor(cfg: Config) {
+  constructor(cfg: data) {
     this.cfg = cfg;
-    const loader = new GLTFLoader();
+    this.initializeModel();
+  }
 
-    loader.load("/milky_way/scene.gltf", (gltf) => {
-      this.model = gltf.scene;
-      this.model.position.x = -cfg.Offset!;
-      this.group.add(this.model);
-      this.group.visible = false;
-      this.group.position.x = this.cfg.Offset || 0;
+  private async initializeModel(): Promise<void> {
+    this.model = await getModel("/milky_way/scene.gltf");
+    this.model.position.x = -this.cfg.Offset!;
+    this.group.add(this.model);
+    this.group.visible = false;
+    this.group.position.x = this.cfg.Offset || 0;
+  }
+
+  destroy(): void {
+    this.group.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach((mat) => mat.dispose());
+        } else {
+          mesh.material.dispose();
+        }
+      }
     });
   }
 }

@@ -1,42 +1,58 @@
 import * as THREE from "three";
-import { Config } from "./config";
+import { type data, type region } from "./config";
 
-export class LocalFluff {
+export class LocalFluff implements region {
   public group: THREE.Group = new THREE.Group();
-  public cfg: Config;
+  private cfg: data;
 
-  constructor(cfg: Config) {
+  constructor(cfg: data) {
     this.cfg = cfg;
+    this.group.position.x = this.cfg.Offset || 0;
+    
     this.createStars();
+    this.createSolarSystemProxy();
   }
 
   private createStars() {
-    // 1. The Sun (at the center)
-    const sunGeom = new THREE.SphereGeometry(2, 16, 16);
-    const sunMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const sun = new THREE.Mesh(sunGeom, sunMat);
-    this.group.add(sun);
+    const starCount = 500;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(starCount * 3);
+    const spread = 2000 * this.cfg.Ratio;
 
-    // 2. Neighboring Stars
-    const starGeom = new THREE.SphereGeometry(1, 12, 12);
-    const starMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
-    // Create 2000 stars in a shell around the origin
-    for (let i = 0; i < 2000; i++) {
-      const star = new THREE.Mesh(starGeom, starMat);
-
-      // Random position between 100 and 8000 units
-      const distance = 100 + Math.random() * 7900;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-
-      star.position.set(
-        distance * Math.sin(phi) * Math.cos(theta),
-        distance * Math.sin(phi) * Math.sin(theta),
-        distance * Math.cos(phi)
-      );
-
-      this.group.add(star);
+    for (let i = 0; i < starCount * 3; i++) {
+      positions[i] = (Math.random() - 0.5) * spread;
     }
+
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const material = new THREE.PointsMaterial({ color: 0xaaaa99, size: 2 });
+    const points = new THREE.Points(geometry, material);
+    this.group.add(points);
+  }
+
+  private createSolarSystemProxy() {
+    const proxyGeo = new THREE.SphereGeometry(50, 16, 16);
+    const proxyMat = new THREE.MeshBasicMaterial({
+      color: 0xffffaa,
+      transparent: true,
+      opacity: 0.8,
+    });
+
+    const proxy = new THREE.Mesh(proxyGeo, proxyMat);
+
+    this.group.add(proxy);
+  }
+  
+  destroy(): void {
+    this.group.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.geometry.dispose();
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach((mat) => mat.dispose());
+        } else {
+          mesh.material.dispose();
+        }
+      }
+    });
   }
 }

@@ -1,6 +1,5 @@
 import * as THREE from "three";
-import { Config } from "./config";
-
+import { type region, type data } from "./config";
 const PLANET_DATA = [
   { name: "Mercury", color: 0xaaaaaa, size: 0.38, distance: 4 },
   { name: "Venus", color: 0xe3bb76, size: 0.95, distance: 7 },
@@ -12,58 +11,32 @@ const PLANET_DATA = [
   { name: "Neptune", color: 0x5b5ddf, size: 1.7, distance: 55 },
 ];
 
-export class SolarSystem {
+export class SolarSystem implements region {
   public group: THREE.Group = new THREE.Group();
-  private cfg;
+  private static sphereGeo = new THREE.SphereGeometry(1, 32, 32);
 
-  constructor(cfg: Config) {
-    this.cfg = cfg;
-    this.group.position.x = this.cfg.Offset || 0;
-
-    this.createPlanets();
+  constructor(cfg: data) {
+    this.group.position.x = cfg.Offset || 0;
+    this.init(cfg.Ratio);
   }
 
-  private createPlanets() {
-    const sphereSegments = 32;
-    const ratio = this.cfg.Ratio || 1;
-
+  private init(ratio: number) {
     PLANET_DATA.forEach((data) => {
-      const scaledDistance = data.distance * ratio;
+      const mat = new THREE.MeshStandardMaterial({ color: data.color });
+      const mesh = new THREE.Mesh(SolarSystem.sphereGeo, mat);
 
-      const geometry = new THREE.SphereGeometry(sphereSegments, sphereSegments);
-      const material = new THREE.MeshStandardMaterial({
-        color: data.color,
-        roughness: 0.7,
-        metalness: 0.1,
-      });
+      mesh.scale.setScalar(data.size * ratio);
+      mesh.position.x = data.distance * ratio;
 
-      const planet = new THREE.Mesh(geometry, material);
-      const orbit = this.createOrbit(scaledDistance);
-
-      planet.position.set(scaledDistance, 0, 0);
-
-      this.group.add(planet);
-      this.group.add(orbit);
+      this.group.add(mesh);
     });
   }
 
-  private createOrbit(radius: number): THREE.LineLoop {
-    const segments = 64;
-    const material = new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.15,
+  public destroy() {
+    this.group.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) {
+        obj.material.dispose();
+      }
     });
-
-    const points = [];
-    for (let i = 0; i <= segments; i++) {
-      const theta = (i / segments) * Math.PI * 2;
-      points.push(
-        new THREE.Vector3(Math.cos(theta) * radius, 0, Math.sin(theta) * radius)
-      );
-    }
-
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    return new THREE.LineLoop(geometry, material);
   }
 }

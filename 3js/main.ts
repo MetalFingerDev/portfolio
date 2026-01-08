@@ -1,14 +1,16 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-
-import { Compendium, Region } from "./config";
-
+import { type address, type region, regions, compendium } from "./config";
 import { MilkyWay } from "./MilkyWay";
 import { LocalFluff } from "./LocalFluff";
 import { SolarSystem } from "./SolarSystem";
 import { LocalGroup } from "./LocalGroup";
 import { Laniakea } from "./Laniakea";
+
+// ============================================================================
+// SETUP
+// ============================================================================
 
 const canvas = document.querySelector("#bg") as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({
@@ -30,65 +32,106 @@ ship.position.set(0, 2, 150);
 const controls = new OrbitControls(ship, canvas);
 controls.enableDamping = true;
 
-const Regions = {
-  [Region.SOLAR_SYSTEM]: new SolarSystem(Compendium[Region.SOLAR_SYSTEM]),
-  [Region.LOCAL_FLUFF]: new LocalFluff(Compendium[Region.LOCAL_FLUFF]),
-  [Region.GALAXY]: new MilkyWay(Compendium[Region.SOLAR_SYSTEM]),
-  [Region.LOCAL_GROUP]: new LocalGroup(Compendium[Region.LOCAL_GROUP]),
-  [Region.LANIAKEA]: new Laniakea(),
-};
-
-let currentRegion = Region.SOLAR_SYSTEM;
-
-Object.keys(Regions).forEach((key) => {
-  const levelKey = Number(key) as Region;
-  const group = Regions[levelKey].group;
-  space.add(group);
-  group.visible = levelKey === currentRegion;
-});
-
 const light = new THREE.AmbientLight(0xffffff, 5.0);
 space.add(light);
 
-function performSnap(targetLevel: Region) {
-  const currentCfg = Compendium[currentRegion];
-  const targetCfg = Compendium[targetLevel];
-  const factor = currentCfg.Ratio! / targetCfg.Ratio!;
+// ============================================================================
+// STAGE
+// ============================================================================
 
-  // Scale both the ship AND the orbit target
+const stage = new Map<address, region>();
+let currentAddress: address = regions.SOLAR_SYSTEM;
+
+const legend: Record<address, new (cfg: any) => region> = {
+  [regions.SOLAR_SYSTEM]: SolarSystem,
+  [regions.LOCAL_FLUFF]: LocalFluff,
+  [regions.GALAXY]: MilkyWay,
+  [regions.LOCAL_GROUP]: LocalGroup,
+  [regions.LANIAKEA]: Laniakea,
+};
+
+// ============================================================================
+// SPACE
+// ============================================================================
+
+function loadRegion(address: address) {
+  if (stage.has(address)) return;
+
+  const embark = legend[address];
+  const creation = new embark(compendium[address]);
+
+  stage.set(address, creation);
+  space.add(creation.group);
+  creation.group.visible = false;
+}
+
+function unloadRegion(address: address) {
+  const departure = stage.get(address);
+
+  if (departure) {
+    space.remove(departure.group);
+    departure.destroy();
+    stage.delete(address);
+  }
+}
+
+function hyperSpace(targetAddress: address) {
+  const current = compendium[currentAddress];
+  const target = compendium[targetAddress];
+
+  const factor = current.Ratio / target.Ratio;
+
   ship.position.multiplyScalar(factor);
   controls.target.multiplyScalar(factor);
 
-  // Toggle Visibility
-  Regions[currentRegion].group.visible = false;
-  Regions[targetLevel].group.visible = true;
+  const frontier = stage.get(targetAddress);
+  if (frontier) {
+    frontier.group.visible = true;
+  }
 
-  currentRegion = targetLevel;
+  const interior = stage.get(currentAddress);
+  if (interior) {
+    interior.group.visible = false;
+  }
 
-  // Important: Update controls so the new target/position are registered
+  currentAddress = targetAddress;
+
+  const actors = [currentAddress, currentAddress - 1, currentAddress + 1];
+  stage.forEach((_, actor) => {
+    if (!actors.includes(actor)) unloadRegion(actor);
+  });
+
+  actors.forEach((actor) => {
+    if (actor >= regions.SOLAR_SYSTEM && actor <= regions.LANIAKEA) {
+      loadRegion(actor as address);
+    }
+  });
+
   controls.update();
 }
 
+// ============================================================================
+// ANIMATION
+// ============================================================================
+
 function animate() {
   requestAnimationFrame(animate);
-  const distance = ship.position.length();
-  const cfg = Compendium[currentRegion];
 
-  // 1. Zooming OUT logic
-  if (cfg.Dist && distance > cfg.Dist && currentRegion < Region.LANIAKEA) {
-    performSnap(currentRegion + 1);
+  const distance = ship.position.distanceTo(controls.target);
+  const cfg = compendium[currentAddress];
+
+  if (cfg.Dist && distance > cfg.Dist && currentAddress < regions.LANIAKEA) {
+    hyperSpace((currentAddress + 1) as address);
   }
 
-  // 2. Zooming IN logic (The Fix)
-  if (currentRegion > Region.SOLAR_SYSTEM) {
-    const prevLevel = (currentRegion - 1) as Region;
-    const prevCfg = Compendium[prevLevel];
+  if (currentAddress > regions.SOLAR_SYSTEM) {
+    const prevAddress = (currentAddress - 1) as address;
+    const prevCfg = compendium[prevAddress];
 
-    const snapBackBoundary =
-      (prevCfg.Dist || 0) * (prevCfg.Ratio! / cfg.Ratio!);
+    const boundary = (prevCfg.Dist || 0) * (prevCfg.Ratio / cfg.Ratio);
 
-    if (distance < snapBackBoundary * 0.9) {
-      performSnap(prevLevel);
+    if (distance < boundary * 0.9) {
+      hyperSpace(prevAddress);
     }
   }
 
@@ -96,10 +139,21 @@ function animate() {
   renderer.render(space, ship);
 }
 
+// ============================================================================
+// EVENT-LISTENERS
+// ============================================================================
+
 window.addEventListener("resize", () => {
   ship.aspect = window.innerWidth / window.innerHeight;
   ship.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+loadRegion(regions.SOLAR_SYSTEM);
+loadRegion(regions.LOCAL_FLUFF);
 
 animate();
