@@ -47,3 +47,70 @@ button:hover {
 .mini-gui input[type="range"] {
   width: 180px;
 }
+
+/* Navigation Dropdown */
+#nav-dropdown {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#nav-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+#nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#nav-list {
+  display: none;
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  width: 200px;
+}
+
+#nav-dropdown.open #nav-list {
+  display: block;
+}
+
+#nav-list li {
+  padding: 12px 20px;
+  color: #ddd;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#nav-list li:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Custom Scrollbar */
+#nav-list::-webkit-scrollbar {
+  width: 5px;
+}
+#nav-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+}

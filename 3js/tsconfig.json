@@ -22,5 +22,11 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "main.ts"]
+  "include": [
+    "src",
+    "main.ts",
+    "src/Sun.ts",
+    "src/units.ts",
+    "src/getFresnelMat.ts"
+  ]
 }

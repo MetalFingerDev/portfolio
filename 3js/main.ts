@@ -1,12 +1,14 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { type address, type region, regions, compendium } from "./config";
-import { MilkyWay } from "./MilkyWay";
-import { LocalFluff } from "./LocalFluff";
-import { SolarSystem } from "./SolarSystem";
-import { LocalGroup } from "./LocalGroup";
-import { Laniakea } from "./Laniakea";
+import { type address, type region, regions, compendium } from "./src/config";
+import { MilkyWay } from "./src/MilkyWay";
+import { LocalFluff } from "./src/LocalFluff";
+import { SolarSystem } from "./src/SolarSystem";
+import { LocalGroup } from "./src/LocalGroup";
+import { Laniakea } from "./src/Laniakea";
+import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { updateNavigationList, setupNavListClickHandler } from "./src/ui";
 
 // ============================================================================
 // SETUP
@@ -19,21 +21,22 @@ const renderer = new THREE.WebGLRenderer({
   logarithmicDepthBuffer: true,
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-
+const clock = new THREE.Clock();
 const space = new THREE.Scene();
 const ship = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
-  999999999
+  1e15
 );
+renderer.toneMappingExposure = 0.5;
 ship.position.set(0, 2, 150);
 
 const controls = new OrbitControls(ship, canvas);
 controls.enableDamping = true;
 
-const light = new THREE.AmbientLight(0xffffff, 5.0);
-space.add(light);
+//const light = new THREE.AmbientLight(0xffffff, 0.1);
+//space.add(light);
 
 // ============================================================================
 // STAGE
@@ -53,6 +56,8 @@ const legend: Record<address, new (cfg: any) => region> = {
 // ============================================================================
 // SPACE
 // ============================================================================
+
+let trackedObject: THREE.Object3D | null = null;
 
 function loadRegion(address: address) {
   if (stage.has(address)) return;
@@ -76,9 +81,10 @@ function unloadRegion(address: address) {
 }
 
 function hyperSpace(targetAddress: address) {
+  trackedObject = null; // Break lock during jump
+
   const current = compendium[currentAddress];
   const target = compendium[targetAddress];
-
   const factor = current.Ratio / target.Ratio;
 
   ship.position.multiplyScalar(factor);
@@ -108,6 +114,9 @@ function hyperSpace(targetAddress: address) {
   });
 
   controls.update();
+
+  // Give the new region a moment to populate its children
+  setTimeout(() => updateNavigationList(stage, currentAddress), 100);
 }
 
 // ============================================================================
@@ -116,9 +125,19 @@ function hyperSpace(targetAddress: address) {
 
 function animate() {
   requestAnimationFrame(animate);
-
+  const delta = clock.getDelta();
   const distance = ship.position.distanceTo(controls.target);
   const cfg = compendium[currentAddress];
+
+  // --- Camera Tracking Logic ---
+  if (trackedObject) {
+    const worldPos = new THREE.Vector3();
+    trackedObject.getWorldPosition(worldPos);
+
+    // Smoothly follow the moving target
+    controls.target.lerp(worldPos, 0.1);
+  }
+  // ------------------------------
 
   if (cfg.Dist && distance > cfg.Dist && currentAddress < regions.LANIAKEA) {
     hyperSpace((currentAddress + 1) as address);
@@ -135,8 +154,17 @@ function animate() {
     }
   }
 
+  stage.forEach((region) => {
+    if (region.update) {
+      region.update(delta);
+    }
+  });
+
   controls.update();
+
+  // Render scene
   renderer.render(space, ship);
+  labelRenderer.render(space, ship);
 }
 
 // ============================================================================
@@ -153,7 +181,33 @@ window.addEventListener("resize", () => {
 // INITIALIZATION
 // ============================================================================
 
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.position = "absolute";
+labelRenderer.domElement.style.top = "0";
+labelRenderer.domElement.style.pointerEvents = "none";
+document.body.appendChild(labelRenderer.domElement);
+
 loadRegion(regions.SOLAR_SYSTEM);
 loadRegion(regions.LOCAL_FLUFF);
+
+const initialRegion = stage.get(currentAddress);
+if (initialRegion) {
+  initialRegion.group.visible = true;
+}
+
+// Setup navigation click handler
+setupNavListClickHandler(
+  stage,
+  () => currentAddress,
+  ship,
+  controls,
+  (obj) => {
+    trackedObject = obj;
+  }
+);
+
+// Initial population
+setTimeout(() => updateNavigationList(stage, currentAddress), 500);
 
 animate();
