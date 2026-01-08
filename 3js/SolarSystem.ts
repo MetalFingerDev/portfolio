@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { WORLD_CONFIG, SceneLevel } from "./newnits";
+import { Config } from "./config";
 
 const PLANET_DATA = [
   { name: "Mercury", color: 0xaaaaaa, size: 0.38, distance: 4 },
@@ -14,61 +14,33 @@ const PLANET_DATA = [
 
 export class SolarSystem {
   public group: THREE.Group = new THREE.Group();
-  private cfg = WORLD_CONFIG[SceneLevel.SOLAR_SYSTEM];
+  private cfg;
 
-  constructor() {
-    // Apply the Offset from config if it exists
+  constructor(cfg: Config) {
+    this.cfg = cfg;
     this.group.position.x = this.cfg.Offset || 0;
 
-    this.createSun();
     this.createPlanets();
-  }
-
-  private createSun() {
-    // Scale the Sun's visual size
-    const sunSize = 2.5 * (this.cfg.Scale || 1);
-    const geometry = new THREE.SphereGeometry(sunSize, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
-    const sun = new THREE.Mesh(geometry, material);
-
-    // Light range should also respect the Ratio
-    const light = new THREE.PointLight(
-      0xffffff,
-      2,
-      100 * (this.cfg.Ratio || 1)
-    );
-    sun.add(light);
-
-    this.group.add(sun);
   }
 
   private createPlanets() {
     const sphereSegments = 32;
     const ratio = this.cfg.Ratio || 1;
-    const scale = this.cfg.Scale || 1;
 
     PLANET_DATA.forEach((data) => {
-      // 1. Calculate scaled size and distance
-      const scaledSize = data.size * 0.5 * scale;
       const scaledDistance = data.distance * ratio;
 
-      const geometry = new THREE.SphereGeometry(
-        scaledSize,
-        sphereSegments,
-        sphereSegments
-      );
+      const geometry = new THREE.SphereGeometry(sphereSegments, sphereSegments);
       const material = new THREE.MeshStandardMaterial({
         color: data.color,
         roughness: 0.7,
         metalness: 0.1,
       });
+
       const planet = new THREE.Mesh(geometry, material);
-
-      // 2. Set the scaled position
-      planet.position.set(scaledDistance, 0, 0);
-
-      // 3. Create the scaled orbit
       const orbit = this.createOrbit(scaledDistance);
+
+      planet.position.set(scaledDistance, 0, 0);
 
       this.group.add(planet);
       this.group.add(orbit);

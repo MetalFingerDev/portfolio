@@ -1,17 +1,18 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { WORLD_CONFIG, SceneLevel } from "./newnits";
+import { Config, Region } from "./config";
 
 export class LocalGroup {
+  public cfg: Config;
   public group: THREE.Group = new THREE.Group();
   private model: THREE.Group | null = null;
 
-  constructor() {
+  constructor(cfg: Config) {
+    this.cfg = cfg;
     const loader = new GLTFLoader();
+
     loader.load("/milky_way/scene.gltf", (gltf) => {
       this.model = gltf.scene;
-
-      // Apply a subtle yellow tint to all mesh materials so the whole model appears warm
       this.model.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
@@ -19,11 +20,9 @@ export class LocalGroup {
             ? mesh.material
             : [mesh.material];
           materials.forEach((mat) => {
-            // Tint base color if available
             if ((mat as any).color) {
               (mat as any).color.setHex(0xffe28a);
             }
-            // Add a bit of yellow emissive for a warmer look (if supported)
             if ((mat as any).emissive) {
               (mat as any).emissive.setHex(0x332200);
               (mat as any).emissiveIntensity = 0.2;
@@ -32,12 +31,6 @@ export class LocalGroup {
           });
         }
       });
-
-      const cfg = WORLD_CONFIG[SceneLevel.GALAXY];
-
-      const s = cfg.Scale!;
-      this.model.scale.set(s, s, s);
-
       this.model.position.x = -cfg.Offset!;
 
       this.group.add(this.model);

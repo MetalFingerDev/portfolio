@@ -1,9 +1,12 @@
 import * as THREE from "three";
+import { Config } from "./config";
 
 export class LocalFluff {
   public group: THREE.Group = new THREE.Group();
+  public cfg: Config;
 
-  constructor() {
+  constructor(cfg: Config) {
+    this.cfg = cfg;
     this.createStars();
   }
 
