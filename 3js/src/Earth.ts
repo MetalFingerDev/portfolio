@@ -27,7 +27,6 @@ export default class Earth {
       64
     );
 
-    // Main Earth Body
     const earthMaterial = new THREE.MeshPhongMaterial({
       map: loader.load("earth.jpg"),
       bumpMap: loader.load("earth_bump.png"),
@@ -37,7 +36,6 @@ export default class Earth {
     this.earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
     this.group.add(this.earthMesh);
 
-    // Clouds
     const cloudsMaterial = new THREE.MeshStandardMaterial({
       map: loader.load("04_earthcloudmap.png"),
       alphaMap: loader.load("05_earthcloudmaptrans.png"),
@@ -50,7 +48,6 @@ export default class Earth {
     this.cloudsMesh.scale.setScalar(1.003);
     this.group.add(this.cloudsMesh);
 
-    // Atmosphere
     const atmosphereMaterial = getFresnelMat();
     this.atmosphereMesh = new THREE.Mesh(earthGeometry, atmosphereMaterial);
     this.atmosphereMesh.scale.setScalar(1.01);

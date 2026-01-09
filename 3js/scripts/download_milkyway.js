@@ -1,13 +1,3 @@
-/*
-Simple downloader for a Milky Way equirectangular texture.
-Usage:
-  node scripts/download_milkyway.js --url <image_url> --out public/milkyway.jpg
-
-Example source URLs (public domain or freely usable):
-- https://www.eso.org/public/images/eso1241a/ (you may need to pick a direct image URL)
-- Any large equirectangular milky way panorama hosted publicly
-*/
-
 import fs from "fs";
 import https from "https";
 import http from "http";
@@ -45,7 +35,6 @@ async function main() {
         else if (a === "--out") out = argv[++i];
     }
 
-    // allow env vars as defaults
     url = url || process.env.MW_URL;
     out = process.env.MW_OUT || out;
 

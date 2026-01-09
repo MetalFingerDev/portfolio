@@ -48,7 +48,6 @@ function getFresnelMat({
     fragmentShader: fs,
     transparent: true,
     blending: THREE.AdditiveBlending,
-    // wireframe: true,
   });
   return fresnelMat;
 }

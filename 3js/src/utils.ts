@@ -6,7 +6,7 @@ const cache = new Map<string, THREE.Group>();
 
 export async function getModel(path: string): Promise<THREE.Group> {
   if (cache.has(path)) {
-    return cache.get(path)!.clone(); // Return a clone, not the original!
+    return cache.get(path)!.clone();
   }
   const gltf = await loader.loadAsync(path);
   cache.set(path, gltf.scene);

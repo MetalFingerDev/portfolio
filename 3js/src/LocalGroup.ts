@@ -1,86 +1,83 @@
 import * as THREE from "three";
-import { getModel } from "./utils";
-import { type data, type region } from "./config";
+import { type data, type region, GALAXY_DATA } from "./config";
 import { lyToScene } from "./units";
+import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 export class LocalGroup implements region {
   public cfg: data;
   public group: THREE.Group = new THREE.Group();
-  private model: THREE.Group | null = null;
 
   constructor(cfg: data) {
     this.cfg = cfg;
-    this.initializeModel();
+    this.initializeLocalGroup();
   }
 
-  private async initializeModel(): Promise<void> {
-    // 1. Load the model
-    this.model = await getModel("/milky_way/scene.gltf");
+  private initializeLocalGroup(): void {
+    GALAXY_DATA.forEach((galaxy) => {
+      const galaxyMesh = this.createGalaxyDisc(galaxy);
 
-    // 2. Adjust the Scale
-    // Since the Milky Way is ~100,000 Light Years across,
-    // we use a multiplier that feels right for the "Local Group" view.
-    const galaxyScale = lyToScene(100000) / this.cfg.Ratio; // Increase this number until it fits your scene perfectly
-    this.model.scale.setScalar(galaxyScale);
+      // Calculate scaled position
+      const scaleX = lyToScene(galaxy.coords.x) / (this.cfg.Ratio || 1);
+      const scaleY = lyToScene(galaxy.coords.y) / (this.cfg.Ratio || 1);
+      const scaleZ = lyToScene(galaxy.coords.z) / (this.cfg.Ratio || 1);
 
-    this.model.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        const materials = Array.isArray(mesh.material)
-          ? mesh.material
-          : [mesh.material];
+      // Apply Offset specifically to the Milky Way placeholder if needed
+      const offsetX = galaxy.name === "Milky Way" ? this.cfg.Offset || 0 : 0;
 
-        materials.forEach((mat) => {
-          // Adjust color for a warmer, galactic glow
-          if ((mat as any).color) {
-            (mat as any).color.setHex(0xffe28a);
-          }
+      galaxyMesh.position.set(scaleX + offsetX, scaleY, scaleZ);
 
-          // Boost emissive properties to make it shine in dark space
-          if ((mat as any).emissive) {
-            (mat as any).emissive.setHex(0x443311);
-            (mat as any).emissiveIntensity = 1.5; // Increased for better Bloom effect
-          }
+      // Add Label
+      const labelDiv = document.createElement("div");
+      labelDiv.className = "galaxy-label";
+      labelDiv.textContent = galaxy.name;
+      labelDiv.style.color = "white";
+      labelDiv.style.fontSize = "12px";
+      labelDiv.style.fontFamily = "sans-serif";
+      labelDiv.style.padding = "2px 5px";
+      labelDiv.style.background = "rgba(0,0,0,0.5)";
 
-          // Ensure the texture looks good from both sides
-          mat.side = THREE.DoubleSide;
-          (mat as any).transparent = true;
-          (mat as any).depthWrite = false; // Prevents "blocky" transparency artifacts
-          (mat as any).needsUpdate = true;
-        });
-      }
+      const label = new CSS2DObject(labelDiv);
+      label.position.set(0, lyToScene(galaxy.size / 2) / this.cfg.Ratio, 0);
+      galaxyMesh.add(label);
+
+      this.group.add(galaxyMesh);
+    });
+  }
+
+  private createGalaxyDisc(data: any): THREE.Mesh {
+    const radius = lyToScene(data.size / 2) / this.cfg.Ratio;
+    const thickness = radius * 0.05;
+
+    const geometry = new THREE.CylinderGeometry(radius, radius, thickness, 32);
+    geometry.rotateX(Math.PI / 2);
+
+    const material = new THREE.MeshBasicMaterial({
+      color: data.color,
+      transparent: true,
+      opacity: 0.6,
+      side: THREE.DoubleSide,
+      depthWrite: false,
     });
 
-    // 3. Positioning
-    // Reset position to center before applying the offset
-    this.model.position.set(-this.cfg.Offset!, 0, 0);
-
-    this.group.add(this.model);
-
-    // Make it visible! (Check if your controller logic turns this on elsewhere)
-    this.group.visible = true;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = data.name;
+    return mesh;
   }
 
-  // Add an update method to make the galaxy rotate slowly
   public update(delta: number): void {
-    if (this.model) {
-      this.model.rotation.y += delta * 0.05; // Cinematic slow spin
-    }
+    this.group.children.forEach((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.rotation.z += delta * 0.02;
+      }
+    });
   }
 
   destroy(): void {
     this.group.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        if (Array.isArray(mesh.material)) {
-          mesh.material.forEach((mat) => mat.dispose());
-        } else {
-          mesh.material.dispose();
-        }
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        (child.material as THREE.Material).dispose();
       }
     });
-    if (this.group.parent) {
-      this.group.parent.remove(this.group);
-    }
   }
 }

@@ -2,24 +2,27 @@ import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { type address, type region, regions, compendium } from "./src/config";
+import { lyToScene } from "./src/units";
 import { MilkyWay } from "./src/MilkyWay";
 import { LocalFluff } from "./src/LocalFluff";
 import { SolarSystem } from "./src/SolarSystem";
 import { LocalGroup } from "./src/LocalGroup";
 import { Laniakea } from "./src/Laniakea";
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { updateNavigationList, setupNavListClickHandler } from "./src/ui";
+import {
+  updateNavigationList,
+  setupNavListClickHandler,
+  updateRegionHud,
+} from "./src/ui";
 
-// ============================================================================
-// SETUP
-// ============================================================================
-
-const canvas = document.querySelector("#bg") as HTMLCanvasElement;
+const canvas = document.querySelector("#bg") as HTMLCanvasElement | null;
+if (!canvas) throw new Error("Canvas not found");
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
   logarithmicDepthBuffer: true,
 });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 const clock = new THREE.Clock();
 const space = new THREE.Scene();
@@ -30,17 +33,12 @@ const ship = new THREE.PerspectiveCamera(
   1e15
 );
 renderer.toneMappingExposure = 0.5;
-ship.position.set(0, 2, 150);
 
 const controls = new OrbitControls(ship, canvas);
 controls.enableDamping = true;
 
-//const light = new THREE.AmbientLight(0xffffff, 0.1);
-//space.add(light);
-
-// ============================================================================
-// STAGE
-// ============================================================================
+const light = new THREE.AmbientLight(0x404040);
+space.add(light);
 
 const stage = new Map<address, region>();
 let currentAddress: address = regions.SOLAR_SYSTEM;
@@ -53,14 +51,13 @@ const legend: Record<address, new (cfg: any) => region> = {
   [regions.LANIAKEA]: Laniakea,
 };
 
-// ============================================================================
-// SPACE
-// ============================================================================
-
 let trackedObject: THREE.Object3D | null = null;
 
 function loadRegion(address: address) {
   if (stage.has(address)) return;
+
+  const cfg = compendium[address];
+  if (!cfg) return;
 
   const embark = legend[address];
   const creation = new embark(compendium[address]);
@@ -68,6 +65,33 @@ function loadRegion(address: address) {
   stage.set(address, creation);
   space.add(creation.group);
   creation.group.visible = false;
+
+  const offset = cfg.Offset || 0; // Retrieve the entry point offset
+
+  // Only set camera position if this is the current active region
+  if (address === currentAddress) {
+    if (address === regions.GALAXY) {
+      // Sun is ~26,000 LY from galactic center
+      const sunDistFromCenter = lyToScene(26000) / cfg.Ratio;
+      // Position ship at the Sun's galactic location, looking at the galactic center
+      ship.position.set(sunDistFromCenter, 500, 500);
+      controls.target.set(0, 0, 0); // Look at galactic center
+      controls.update();
+    }
+    if (address === regions.LOCAL_FLUFF) {
+      const entryDist = lyToScene(50) / cfg.Ratio;
+      // Position ship relative to the fluff's offset
+      ship.position.set(offset, 0, entryDist);
+      controls.target.set(offset, 0, 0);
+      controls.update();
+    }
+    if (address === regions.SOLAR_SYSTEM) {
+      // Position ship relative to the solar system's offset
+      ship.position.set(offset, 2, 150);
+      controls.target.set(offset, 0, 0);
+      controls.update();
+    }
+  }
 }
 
 function unloadRegion(address: address) {
@@ -115,13 +139,9 @@ function hyperSpace(targetAddress: address) {
 
   controls.update();
 
-  // Give the new region a moment to populate its children
+  updateRegionHud(currentAddress);
   setTimeout(() => updateNavigationList(stage, currentAddress), 100);
 }
-
-// ============================================================================
-// ANIMATION
-// ============================================================================
 
 function animate() {
   requestAnimationFrame(animate);
@@ -129,15 +149,12 @@ function animate() {
   const distance = ship.position.distanceTo(controls.target);
   const cfg = compendium[currentAddress];
 
-  // --- Camera Tracking Logic ---
   if (trackedObject) {
     const worldPos = new THREE.Vector3();
     trackedObject.getWorldPosition(worldPos);
 
-    // Smoothly follow the moving target
     controls.target.lerp(worldPos, 0.1);
   }
-  // ------------------------------
 
   if (cfg.Dist && distance > cfg.Dist && currentAddress < regions.LANIAKEA) {
     hyperSpace((currentAddress + 1) as address);
@@ -162,24 +179,15 @@ function animate() {
 
   controls.update();
 
-  // Render scene
   renderer.render(space, ship);
   labelRenderer.render(space, ship);
 }
-
-// ============================================================================
-// EVENT-LISTENERS
-// ============================================================================
 
 window.addEventListener("resize", () => {
   ship.aspect = window.innerWidth / window.innerHeight;
   ship.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
 
 const labelRenderer = new CSS2DRenderer();
 labelRenderer.setSize(window.innerWidth, window.innerHeight);
@@ -196,7 +204,6 @@ if (initialRegion) {
   initialRegion.group.visible = true;
 }
 
-// Setup navigation click handler
 setupNavListClickHandler(
   stage,
   () => currentAddress,
@@ -207,7 +214,7 @@ setupNavListClickHandler(
   }
 );
 
-// Initial population
+updateRegionHud(currentAddress);
 setTimeout(() => updateNavigationList(stage, currentAddress), 500);
 
 animate();

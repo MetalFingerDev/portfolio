@@ -7,11 +7,8 @@ export default class Render extends THREE.WebGLRenderer {
       this as unknown as { physicallyCorrectLights?: boolean }
     ).physicallyCorrectLights = true;
 
-    // Enable tone mapping for better control over overall brightness
-    // Use ACES filmic (if available) and set a conservative exposure
     (this as any).toneMapping =
       THREE.ACESFilmicToneMapping ?? THREE.ReinhardToneMapping;
-    // Lowered exposure to reduce overall brightness of bright textures
     (this as any).toneMappingExposure = 0.35;
 
     this.setPixelRatio(window.devicePixelRatio);

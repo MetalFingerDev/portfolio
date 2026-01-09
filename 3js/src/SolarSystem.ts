@@ -9,12 +9,58 @@ const ENTIRE_SCENE = 0;
 
 export class SolarSystem implements region {
   public group: THREE.Group = new THREE.Group();
+  public cfg: data;
   private static sphereGeo = new THREE.SphereGeometry(1, 64, 64);
   private updatables: { update: (delta: number) => void }[] = [];
 
   constructor(cfg: data) {
+    this.cfg = cfg;
     this.group.position.x = cfg.Offset || 0;
     this.init(cfg.Ratio);
+    this.createStarShell(cfg.Ratio);
+  }
+
+  private createStarShell(ratio: number): void {
+    const shellRadius = (this.cfg.Dist * 100) / ratio; // Massive distance = no parallax
+    const starCount = 10000;
+
+    const positions = new Float32Array(starCount * 3);
+    const colors = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+
+      positions[i * 3] = shellRadius * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = shellRadius * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = shellRadius * Math.cos(phi);
+
+      // Uniform Color Logic
+      const color = new THREE.Color().setHSL(
+        0.6 + Math.random() * 0.05,
+        0.8,
+        0.5 + Math.random() * 0.4
+      );
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({
+      size: 1.5, // Match size with Fluff
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8,
+      sizeAttenuation: false, // Keeps stars as 1.5px dots regardless of distance
+      blending: THREE.AdditiveBlending,
+    });
+
+    const starShell = new THREE.Points(geometry, material);
+    this.group.add(starShell);
   }
 
   private createLabel(text: string, yOffset: number): CSS2DObject {
@@ -35,7 +81,6 @@ export class SolarSystem implements region {
   }
 
   private init(ratio: number) {
-    // 1. Realistic Sun (Scaled by Ratio)
     const sunRadius = SUN_RADIUS * ratio;
     const sun = new Sun(this.group, {
       radius: sunRadius,
@@ -45,47 +90,41 @@ export class SolarSystem implements region {
     sun.sunGroup.name = "Sun";
     this.updatables.push(sun);
 
-    // Sun label
     const sunLabel = this.createLabel("Sun", sunRadius * 1.5);
     this.group.add(sunLabel);
 
-    // 2. Realistic Planets
     PLANET_DATA.forEach((planet) => {
-      const a = planet.distance * AU_SCENE * ratio; // Semi-major axis
+      const a = planet.distance * AU_SCENE * ratio;
       const e = planet.eccentricity;
-      const b = a * Math.sqrt(1 - e * e); // Semi-minor axis
-      const focusOffset = a * e; // Distance from center to focus (where Sun is)
+      const b = a * Math.sqrt(1 - e * e);
+      const focusOffset = a * e;
 
-      // 1. Create Orbital Marker (The Ellipse)
       const curve = new THREE.EllipseCurve(
         -focusOffset,
-        0, // Center is offset so focus is at (0,0)
-        a,
-        b, // Radii
         0,
-        2 * Math.PI, // Full circle
+        a,
+        b,
+        0,
+        2 * Math.PI,
         false,
         0
       );
 
       const points = curve.getPoints(128);
       const orbitGeo = new THREE.BufferGeometry().setFromPoints(points);
-      orbitGeo.rotateX(Math.PI / 2); // Lay flat on XZ plane
+      orbitGeo.rotateX(Math.PI / 2);
 
       const orbitMat = new THREE.LineBasicMaterial({
-        color: 0x4444ff, // Soft blue instead of harsh white
+        color: 0x4444ff,
         transparent: true,
         opacity: 0.15,
-        blending: THREE.AdditiveBlending, // Makes it "glow" against the black background
+        blending: THREE.AdditiveBlending,
       });
       const orbitLine = new THREE.Line(orbitGeo, orbitMat);
       this.group.add(orbitLine);
 
-      // 2. Calculate Position for Jan 1, 2026
       const angleRad = THREE.MathUtils.degToRad(planet.angle);
 
-      // Keplerian position relative to focus
-      // r = a(1-e^2) / (1 + e*cos(theta))
       const r = (a * (1 - e * e)) / (1 + e * Math.cos(angleRad));
       const posX = r * Math.cos(angleRad);
       const posZ = r * Math.sin(angleRad);
@@ -101,12 +140,12 @@ export class SolarSystem implements region {
       } else {
         const mat = new THREE.MeshStandardMaterial({
           color: planet.color,
-          roughness: 0.9, // Higher roughness stops the "glistening"
+          roughness: 0.9,
           metalness: 0.0,
         });
         const mesh = new THREE.Mesh(SolarSystem.sphereGeo, mat);
 
-        mesh.layers.set(ENTIRE_SCENE); // Ensure it's on Layer 0
+        mesh.layers.set(ENTIRE_SCENE);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
@@ -116,7 +155,6 @@ export class SolarSystem implements region {
         this.group.add(mesh);
       }
 
-      // Position Labels
       const label = this.createLabel(planet.name, planetSize * 3);
       label.position.set(posX, 0, posZ);
       this.group.add(label);

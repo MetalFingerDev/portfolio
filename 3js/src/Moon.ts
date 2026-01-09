@@ -65,7 +65,6 @@ export default class Moon {
       this.moonMesh.add(axis);
     }
 
-    // simple orbit visualization (line loop) added to orbit group
     {
       const segments = 128;
       const positions = new Float32Array(segments * 3);
@@ -88,10 +87,7 @@ export default class Moon {
     }
   }
 
-  // orbit the moon (rotate the orbit group) — moon is tidally locked, so no extra local spin
   update(delta = 0.016) {
-    // orbit around parent in the inclined plane
     this.orbitGroup.rotation.y += Moon.ORBIT_SPEED * delta;
-    // local rotation is intentionally NOT updated so the same lunar face remains pointed toward the parent
   }
 }
