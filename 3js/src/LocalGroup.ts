@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { type data, type region, GALAXY_DATA } from "./config";
-import { lyToScene } from "./units";
+import { lyToScene } from "./conversions";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 export class LocalGroup implements region {

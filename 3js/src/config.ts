@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { AU_SCENE, LY_SCENE } from "./units";
+import { AU_SCENE, LY_SCENE } from "./conversions";
 
 export type address = (typeof regions)[keyof typeof regions];
 

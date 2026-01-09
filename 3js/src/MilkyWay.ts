@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { type data, type region } from "./config";
-import { lyToScene } from "./units";
+import { lyToScene } from "./conversions";
 
 export class MilkyWay implements region {
   public group: THREE.Group = new THREE.Group();

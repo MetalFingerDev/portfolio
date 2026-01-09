@@ -7,7 +7,7 @@ import {
   MOON_DISTANCE_SCENE,
   MOON_AXIS_TILT_DEG,
   perSecondToPerDay,
-} from "./units";
+} from "./conversions";
 
 export default class Moon {
   moonMesh: THREE.Mesh;

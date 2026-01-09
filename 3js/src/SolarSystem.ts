@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { PLANET_DATA, type region, type data } from "./config";
-import { AU_SCENE, SUN_RADIUS } from "./units";
+import { AU_SCENE, SUN_RADIUS } from "./conversions";
 import Earth from "./Earth";
 import Sun from "./Sun";
 

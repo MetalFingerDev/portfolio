@@ -2,7 +2,7 @@ import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { type address, type region, regions, compendium } from "./src/config";
-import { lyToScene } from "./src/units";
+import { lyToScene } from "./src/conversions";
 import { MilkyWay } from "./src/MilkyWay";
 import { LocalFluff } from "./src/LocalFluff";
 import { SolarSystem } from "./src/SolarSystem";
@@ -13,7 +13,7 @@ import {
   updateNavigationList,
   setupNavListClickHandler,
   updateRegionHud,
-} from "./src/ui";
+} from "./src/console";
 
 const canvas = document.querySelector("#bg") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("Canvas not found");

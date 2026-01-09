@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { MILKY_WAY_WIDTH_SCENE } from "./units";
+import { MILKY_WAY_WIDTH_SCENE } from "./conversions";
 
 export default class SpaceShip {
   camera: THREE.PerspectiveCamera;

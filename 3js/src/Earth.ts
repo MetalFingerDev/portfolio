@@ -4,7 +4,7 @@ import {
   EARTH_ROTATION_SPEED,
   perSecondToPerDay,
   EARTH_OBLIQUITY_DEG,
-} from "./units.ts";
+} from "./conversions.ts";
 import { getFresnelMat } from "./getFresnelMat.ts";
 
 export default class Earth {
