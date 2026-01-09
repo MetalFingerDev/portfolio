@@ -1,18 +1,3 @@
-/*
-Node script to create a small JSON star catalog from a CSV catalog.
-
-Usage:
-  npm install csv-parse
-  node scripts/generate_stars.js --input path_or_url_to_csv --out public/bright-stars.json --maxMag 6
-
-The script looks for common column names (RA, Dec in degrees or RA_hms/Dec_dms) and magnitude columns (Vmag, V).
-It outputs a compact JSON array: [{ ra: <deg>, dec: <deg>, mag: <V>, bv: <B-V?> }, ...]
-
-Notes:
-- This is intentionally permissive to work with common Hipparcos/Tycho/BSC CSV formats.
-- For very large catalogs, filter by --maxMag (default 6) to keep the output small enough for the web app.
-*/
-
 import fs from "fs";
 import { parse } from "csv-parse/sync";
 import https from "https";
@@ -44,17 +29,15 @@ function tryParseFloat(v) {
 }
 
 function hmsToDeg(hms) {
-    // accept formats like "hh mm ss" or "hh:mm:ss"
     const parts = String(hms).trim().split(/[:\s]+/).map(Number);
     if (parts.length < 2) return undefined;
     const h = parts[0] || 0;
     const m = parts[1] || 0;
     const s = parts[2] || 0;
-    return (h + m / 60 + s / 3600) * 15; // hours to degrees
+    return (h + m / 60 + s / 3600) * 15;
 }
 
 function dmsToDeg(dms) {
-    // accept formats like "+dd mm ss" or "-dd:mm:ss"
     const parts = String(dms).trim().split(/[:\s]+/);
     if (parts.length < 2) return undefined;
     const sign = parts[0].startsWith("-") ? -1 : 1;
@@ -77,7 +60,6 @@ async function main() {
         else if (a === "--out") out = argv[++i];
         else if (a === "--maxMag") maxMag = Number(argv[++i]);
     }
-    // Allow environment variables as defaults for portability across shells
     input = input || process.env.STARS_INPUT;
     out = out || process.env.STARS_OUT || out;
     maxMag = !Number.isNaN(maxMag) ? maxMag : Number(process.env.STARS_MAXMAG || maxMag);
@@ -101,7 +83,6 @@ async function main() {
 
     console.log(`Using: input=${input}, out=${out}, maxMag=${maxMag}`);
 
-    // auto-detect delimiter (tab vs comma)
     const parseOptions = { columns: true, skip_empty_lines: true };
     if (csvText.includes('\t')) parseOptions.delimiter = '\t';
     const records = parse(csvText, parseOptions);
@@ -116,7 +97,6 @@ async function main() {
 
     for (const r of records) {
         processed++;
-        // try to find RA/Dec and Vmag/B-V in common header names
         const keys = Object.keys(r).reduce((acc, k) => ({ ...acc, [k.toLowerCase()]: r[k] }), {});
         let ra = tryParseFloat(keys.ra || keys['ra_deg'] || keys['ra_deg']);
         let dec = tryParseFloat(keys.dec || keys['dec_deg'] || keys['dec_deg']);
@@ -128,29 +108,24 @@ async function main() {
         let mag = tryParseFloat(keys.vmag || keys.v || keys.mag || keys['vmag']);
         const bv = tryParseFloat(keys['b-v'] || keys.bv || keys['bv']);
 
-        // basic presence check
         if (ra === undefined || dec === undefined || mag === undefined) {
             skippedMissing++;
             continue;
         }
 
-        // RA normalization/validation
-        // common CSVs sometimes give RA in hours (0..24) as a plain number — convert to degrees
         if (ra >= 0 && ra <= 24) {
-            ra = ra * 15; // hours -> degrees
+            ra = ra * 15;
         }
         if (!(ra >= 0 && ra < 360 && dec >= -90 && dec <= 90)) {
             skippedInvalidCoord++;
             continue;
         }
 
-        // magnitude validation (reasonable range)
         if (!(mag >= -30 && mag <= 30)) {
             skippedInvalidMag++;
             continue;
         }
 
-        // filter by brightness
         if (mag > maxMag) {
             skippedFilteredByMag++;
             continue;

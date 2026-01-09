@@ -1,100 +1,87 @@
 import * as THREE from "three";
 
-import {
-  SUN_DISTANCE_SCENE,
-  SUN_RADIUS_SCENE,
-  SUN_AXIS_TILT_DEG,
-  SUN_ROTATION_SPEED,
-  perSecondToPerDay,
-} from "./units";
+export interface SunConfig {
+  radius: number;
+  color?: number;
+  emissive?: number;
+  detailed?: boolean; // If true, adds PointLight and axis
+  rotationSpeed?: number;
+  position?: THREE.Vector3;
+}
 
 export default class Sun {
-  sunMesh: THREE.Mesh;
-  sunGroup: THREE.Group;
-  sunLight: THREE.PointLight;
-  static RADIUS = SUN_RADIUS_SCENE;
-  static ROTATION_SPEED = perSecondToPerDay(SUN_ROTATION_SPEED);
+  public sunGroup: THREE.Group;
+  public sunMesh: THREE.Mesh;
+  public sunLight?: THREE.PointLight;
+  private rotationSpeed: number;
 
-  constructor(scene: THREE.Scene) {
+  constructor(parent: THREE.Group, config: SunConfig) {
     this.sunGroup = new THREE.Group();
-    scene.add(this.sunGroup);
+    parent.add(this.sunGroup);
 
-    const sunGeometry = new THREE.SphereGeometry(SUN_RADIUS_SCENE, 64, 64);
-    const sunMaterial = new THREE.MeshStandardMaterial({
-      color: 0x000000,
-      emissive: 0xffffff,
-      roughness: 1,
-      metalness: 0,
-      side: THREE.DoubleSide,
-    });
-    this.sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+    this.rotationSpeed = config.rotationSpeed ?? 0.01;
+
+    const segments = config.detailed ? 64 : 16;
+    const geometry = new THREE.SphereGeometry(
+      config.radius,
+      segments,
+      segments
+    );
+
+    const material = config.detailed
+      ? new THREE.MeshStandardMaterial({
+          emissive: 0xffcc33,
+          emissiveIntensity: 2,
+          color: 0x000000,
+        })
+      : new THREE.MeshBasicMaterial({
+          color: config.color ?? 0xffffff,
+          toneMapped: false,
+        });
+
+    this.sunMesh = new THREE.Mesh(geometry, material);
+
+    if (config.position) {
+      this.sunMesh.position.copy(config.position);
+    }
+
     this.sunGroup.add(this.sunMesh);
 
-    this.sunMesh.position.set(SUN_DISTANCE_SCENE, 0, 0);
-    this.sunMesh.castShadow = this.sunMesh.receiveShadow = false;
+    if (config.detailed) {
+      this.sunLight = new THREE.PointLight(0xffffff, 600, 0, 0.5);
 
-    this.sunLight = new THREE.PointLight(0xffffff, 1000000000, 0, 2);
-    this.sunGroup.add(this.sunLight);
-    this.sunLight.position.copy(this.sunMesh.position);
-    this.sunMesh.layers.enable(1);
+      this.sunLight.castShadow = true;
+      this.sunLight.shadow.mapSize.set(2048, 2048);
+      this.sunLight.shadow.camera.far = 2000000;
+
+      this.sunLight.position.copy(this.sunMesh.position);
+      this.sunGroup.add(this.sunLight);
+      this.sunMesh.material = new THREE.MeshStandardMaterial({
+        emissive: 0xffcc33,
+        emissiveIntensity: 3,
+        toneMapped: false,
+      });
+
+      this.addAxis(config.radius);
+    }
   }
 
-  update(delta = 0.016) {
-    this.sunMesh.rotation.y += Sun.ROTATION_SPEED * delta;
-  }
-}
-
-export function CloseSun(scene: THREE.Scene) {
-  const sun = new Sun(scene);
-
-  sun.sunMesh.rotation.z = THREE.MathUtils.degToRad(SUN_AXIS_TILT_DEG);
-
-  {
-    const axisLen = SUN_RADIUS_SCENE * 2.2;
-    const axisGeom = new THREE.BufferGeometry();
-    axisGeom.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(
-        [0, axisLen / 2, 0, 0, -axisLen / 2, 0],
-        3
-      )
-    );
-    const axisMat = new THREE.LineBasicMaterial({
-      color: 0xffff00,
-      transparent: true,
-      opacity: 0.85,
+  private addAxis(radius: number) {
+    const axisLen = radius * 2.2;
+    const points = [
+      new THREE.Vector3(0, axisLen / 2, 0),
+      new THREE.Vector3(0, -axisLen / 2, 0),
+    ];
+    const geom = new THREE.BufferGeometry().setFromPoints(points);
+    const mat = new THREE.MeshStandardMaterial({
+      emissive: 0xffcc33,
+      emissiveIntensity: 2,
+      color: 0x000000,
     });
-    const axis = new THREE.Line(axisGeom, axisMat);
-    sun.sunMesh.add(axis);
+    this.sunMesh.add(new THREE.Line(geom, mat));
   }
 
-  return sun;
-}
-
-export function DistantSun(
-  scene: THREE.Scene,
-  opts?: { color?: number; radiusScale?: number; distanceScale?: number }
-) {
-  const color = opts?.color ?? 0xffee88;
-  const radiusScale = opts?.radiusScale ?? 0.002; // relative to SUN_RADIUS_SCENE
-  const distanceScale = opts?.distanceScale ?? 5; // placed at SUN_DISTANCE_SCENE * distanceScale
-
-  const group = new THREE.Group();
-  scene.add(group);
-
-  const radius = SUN_RADIUS_SCENE * radiusScale;
-  const geom = new THREE.SphereGeometry(Math.max(0.001, radius), 16, 16);
-  const mat = new THREE.MeshBasicMaterial({ color, toneMapped: false });
-  const mesh = new THREE.Mesh(geom, mat);
-  group.add(mesh);
-
-  mesh.position.set(SUN_DISTANCE_SCENE * distanceScale, 0, 0);
-
-  return {
-    group,
-    mesh,
-    update(delta = 0.016) {
-      mesh.rotation.y += 0.1 * delta;
-    },
-  };
+  public update(delta: number) {
+    this.sunMesh.rotation.y += this.rotationSpeed * delta;
+  }
 }
