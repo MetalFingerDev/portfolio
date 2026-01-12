@@ -95,9 +95,7 @@ export function setupSceneSelector(onSceneChange: (addr: address) => void) {
 
   sceneSelector.innerHTML = "";
 
-  // Get all keys from the regions object
-  Object.keys(regions).forEach((key) => {
-    const addr = (regions as any)[key] as address;
+  Object.entries(regions).forEach(([key, addr]) => {
     const cfg = compendium[addr];
 
     const btn = document.createElement("button");
