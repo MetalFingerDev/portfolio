@@ -35,7 +35,7 @@ export const compendium: Record<address, data> = {
     // Lowered Ratio from 1000 to 10
     // This makes the local star cloud 100x larger in the scene
     Name: "Local Fluff",
-    Dist: 200 * LY_SCENE,
+    Dist: 50 * LY_SCENE,
     Ratio: 10,
     Offset: 0,
   },
@@ -45,7 +45,8 @@ export const compendium: Record<address, data> = {
     Name: "Milky Way",
     Dist: 150000 * LY_SCENE,
     Ratio: 50000,
-    Offset: 0,
+    // Sun's position: 26,000 LY converted to scene units and scaled by the Galaxy ratio
+    Offset: (26000 * LY_SCENE) / 50000,
   },
   [regions.LOCAL_GROUP]: {
     Name: "Local Group",

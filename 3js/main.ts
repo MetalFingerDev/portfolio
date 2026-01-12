@@ -109,20 +109,42 @@ function hyperSpace(targetAddress: address) {
 
   const current = compendium[currentAddress];
   const target = compendium[targetAddress];
+
+  // 1. Calculate the ship's current position relative to its own region's center
+  const currentOffset = current.Offset || 0;
+  const targetOffset = target.Offset || 0;
+
+  // 2. Move camera to "Local Space" (relative to the Sun/Origin)
+  const relativePos = ship.position
+    .clone()
+    .setX(ship.position.x - currentOffset);
+  const relativeTarget = controls.target
+    .clone()
+    .setX(controls.target.x - currentOffset);
+
+  // 3. Apply the scaling factor
   const factor = current.Ratio / target.Ratio;
+  relativePos.multiplyScalar(factor);
+  relativeTarget.multiplyScalar(factor);
 
-  ship.position.multiplyScalar(factor);
-  controls.target.multiplyScalar(factor);
+  // 4. Move camera to the new region's World Space (adding the new Offset)
+  ship.position.copy(relativePos).setX(relativePos.x + targetOffset);
+  controls.target.copy(relativeTarget).setX(relativeTarget.x + targetOffset);
 
+  // Visibility and region management
   const frontier = stage.get(targetAddress);
   if (frontier) {
     frontier.group.visible = true;
+
+    // LOCK ON CALLBACK: Find the placeholder and track it
+    const anchor = frontier.group.getObjectByName("Solar System Anchor");
+    if (anchor) {
+      trackedObject = anchor;
+    }
   }
 
   const interior = stage.get(currentAddress);
-  if (interior) {
-    interior.group.visible = false;
-  }
+  if (interior) interior.group.visible = false;
 
   currentAddress = targetAddress;
 
@@ -138,7 +160,6 @@ function hyperSpace(targetAddress: address) {
   });
 
   controls.update();
-
   updateRegionHud(currentAddress);
   setTimeout(() => updateNavigationList(stage, currentAddress), 100);
 }

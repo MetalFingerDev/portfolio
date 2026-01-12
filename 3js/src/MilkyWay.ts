@@ -12,8 +12,8 @@ export class MilkyWay implements region {
   }
 
   private initialize(): void {
-    // Apply the regional offset to the group position
-    this.group.position.x = this.cfg.Offset || 0;
+    // Keep the group at 0,0,0 so the Galactic Center is the center of the world
+    this.group.position.set(0, 0, 0);
 
     /**
      * ACCURATE PROPORTIONS (100:1 Ratio)
@@ -92,6 +92,26 @@ export class MilkyWay implements region {
 
     const corePoint = new THREE.Points(corePointGeo, corePointMat);
     this.group.add(corePoint);
+
+    // 5. SOLAR SYSTEM ANCHOR (The "Star" placeholder)
+    const sunDist = lyToScene(26000) / this.cfg.Ratio;
+    const anchorGeo = new THREE.BufferGeometry();
+    anchorGeo.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute([sunDist, 0, 0], 3)
+    );
+
+    const anchorMat = new THREE.PointsMaterial({
+      color: 0xffff00, // Yellow star color
+      size: 8,
+      sizeAttenuation: false, // Keeps it a constant pixel size
+      transparent: true,
+      opacity: 0.9,
+    });
+
+    const anchor = new THREE.Points(anchorGeo, anchorMat);
+    anchor.name = "Solar System Anchor"; // Crucial for finding it in main.ts
+    this.group.add(anchor);
   }
 
   public update(_delta: number): void {
