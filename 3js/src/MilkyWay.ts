@@ -13,7 +13,8 @@ export class MilkyWay implements region {
 
   private initialize(): void {
     // Apply the regional offset to the group position
-    this.group.position.x = this.cfg.Offset || 0;
+    // Offset is in scene units (LY_SCENE), divide by ratio to get scaled position
+    this.group.position.x = (this.cfg.Offset || 0) / this.cfg.Ratio;
 
     /**
      * ACCURATE PROPORTIONS (100:1 Ratio)

@@ -42,10 +42,11 @@ export const compendium: Record<address, data> = {
   [regions.GALAXY]: {
     // Lowered Ratio from 5,000,000 to 50,000
     // This makes the Milky Way disc 100x larger
+    // Offset: Sun is ~26,000 LY from galactic center
     Name: "Milky Way",
     Dist: 150000 * LY_SCENE,
     Ratio: 50000,
-    Offset: 0,
+    Offset: -26000 * LY_SCENE,
   },
   [regions.LOCAL_GROUP]: {
     Name: "Local Group",

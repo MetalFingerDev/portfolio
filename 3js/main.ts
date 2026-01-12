@@ -22,7 +22,6 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
   logarithmicDepthBuffer: true,
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 const clock = new THREE.Clock();
 const space = new THREE.Scene();
@@ -111,8 +110,18 @@ function hyperSpace(targetAddress: address) {
   const target = compendium[targetAddress];
   const factor = current.Ratio / target.Ratio;
 
+  // Get offsets (already in scene units, need to scale for current region)
+  const currentOffset = (current.Offset || 0) / current.Ratio;
+  const targetOffset = (target.Offset || 0) / target.Ratio;
+
+  // Remove current offset, scale, then add target offset
+  ship.position.x -= currentOffset;
   ship.position.multiplyScalar(factor);
+  ship.position.x += targetOffset;
+
+  controls.target.x -= currentOffset;
   controls.target.multiplyScalar(factor);
+  controls.target.x += targetOffset;
 
   const frontier = stage.get(targetAddress);
   if (frontier) {

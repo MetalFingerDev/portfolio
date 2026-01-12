@@ -21,8 +21,9 @@ export class LocalFluff implements region {
     const colors = new Float32Array(starCount * 3);
 
     for (let i = 0; i < starCount; i++) {
-      // KEPT VOLUMETRIC: Power distribution for density
-      const r = Math.pow(Math.random(), 0.5) * boundaryRadius;
+      // UNIFORM VOLUMETRIC: Cube root for uniform sphere volume distribution
+      // This ensures stars fill the entire region evenly, not concentrated at center
+      const r = Math.cbrt(Math.random()) * boundaryRadius;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
 

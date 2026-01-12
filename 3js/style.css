@@ -4,6 +4,13 @@
   --border: rgba(0, 242, 255, 0.2);
 }
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 canvas {
   position: fixed;
   top: 0;
