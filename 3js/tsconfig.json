@@ -24,7 +24,7 @@
   },
   "include": [
     "src",
-    "main.ts",
+    "app.ts",
     "src/Sun.ts",
     "src/conversions.ts",
     "src/getFresnelMat.ts"
