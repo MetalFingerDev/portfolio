@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { AU_SCENE } from "./conversions";
+import { AU_SCENE, toSceneUnits, EARTH_RADIUS_M } from "./conversions";
 import { createLabel } from "./label";
 import { addOrbit, addAxis } from "./visuals";
 import type { ICelestialBody } from "./config";
@@ -86,6 +86,7 @@ export default class Planet implements ICelestialBody {
   private rotationSpeed: number;
   private highDetailGroup: THREE.Group = new THREE.Group();
   private lowDetailGroup: THREE.Group = new THREE.Group();
+  private isHighDetail = true;
   public mesh!: THREE.Mesh;
 
   constructor(planet: PlanetData, ratio: number, parent?: THREE.Group) {
@@ -95,9 +96,10 @@ export default class Planet implements ICelestialBody {
     this.group.name = this.name;
     this.group.add(this.highDetailGroup, this.lowDetailGroup);
 
-    const planetSize = planet.size * ratio;
+    // Compute size from physical Earth radii and convert to scene units
+    const sceneRadius = toSceneUnits(planet.size * EARTH_RADIUS_M, ratio);
     const segments = 64;
-    const geometry = new THREE.SphereGeometry(planetSize, segments, segments);
+    const geometry = new THREE.SphereGeometry(sceneRadius, segments, segments);
 
     const material = new THREE.MeshStandardMaterial({
       color: planet.color,
@@ -121,7 +123,8 @@ export default class Planet implements ICelestialBody {
       });
       this.group.position.copy(position);
     } else {
-      const a = planet.distance * AU_SCENE * ratio;
+      // Local placement: use same math as addOrbit but apply ratio as divisor
+      const a = (planet.distance * AU_SCENE) / ratio;
       const e = planet.eccentricity;
       const angleRad = THREE.MathUtils.degToRad(planet.angle);
       const r = (a * (1 - e * e)) / (1 + e * Math.cos(angleRad));
@@ -132,14 +135,14 @@ export default class Planet implements ICelestialBody {
       );
     }
 
-    addAxis(this.mesh, planetSize * 2.2);
-    this.group.add(createLabel(this.name, planetSize * 3));
-    // Store base size for centralized scaling decisions
-    this.group.userData.baseSize = planet.size * ratio;
+    addAxis(this.mesh, sceneRadius * 2.2);
+    this.group.add(createLabel(this.name, sceneRadius * 3));
+    // Store base size for centralized scaling decisions (use scene units)
+    this.group.userData.baseSize = sceneRadius;
 
     // Low-detail fallback: simple sphere
     const lowGeo = new THREE.SphereGeometry(
-      Math.max(0.5, planetSize * 0.6),
+      Math.max(0.5, sceneRadius * 0.6),
       8,
       8
     );
@@ -151,13 +154,14 @@ export default class Planet implements ICelestialBody {
   }
 
   public setDetail(isHighDetail: boolean) {
+    this.isHighDetail = isHighDetail;
+    this.group.userData.detailIsHigh = isHighDetail;
     this.highDetailGroup.visible = isHighDetail;
     this.lowDetailGroup.visible = !isHighDetail;
   }
 
   public update(delta: number) {
-    if (this.highDetailGroup.visible)
-      this.mesh.rotation.y += this.rotationSpeed * delta;
+    if (this.isHighDetail) this.mesh.rotation.y += this.rotationSpeed * delta;
   }
 
   public destroy(): void {

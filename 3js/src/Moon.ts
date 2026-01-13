@@ -1,12 +1,13 @@
 import * as THREE from "three";
 import {
-  MOON_RADIUS,
+  MOON_RADIUS_M,
   MOON_ROTATION,
   MOON_ORBIT_INCLINATION_DEG,
   MOON_ORBIT_SPEED,
   MOON_DISTANCE_SCENE,
   MOON_AXIS_TILT_DEG,
   perSecondToPerDay,
+  toSceneUnits,
 } from "./conversions";
 import type { ICelestialBody } from "./config";
 
@@ -15,10 +16,10 @@ export default class Moon implements ICelestialBody {
   private highDetailGroup: THREE.Group = new THREE.Group();
   private lowDetailGroup: THREE.Group = new THREE.Group();
   private orbitGroup: THREE.Group = new THREE.Group();
+  private isHighDetail = true;
 
   private moonMesh!: THREE.Mesh;
 
-  static RADIUS = MOON_RADIUS;
   static ROTATION_SPEED = perSecondToPerDay(MOON_ROTATION);
   static ORBIT_SPEED = perSecondToPerDay(MOON_ORBIT_SPEED);
   static ORBIT_INCLINATION_DEG = MOON_ORBIT_INCLINATION_DEG;
@@ -39,7 +40,9 @@ export default class Moon implements ICelestialBody {
 
     const moonTex = loader.load("MOON.png");
     const moonBump = loader.load("MOON_bump.png");
-    const moonGeometry = new THREE.SphereGeometry(Moon.RADIUS * ratio, 32, 32);
+    // Compute scene radius from physical moon meters and ratio
+    const sceneRadius = toSceneUnits(MOON_RADIUS_M, ratio);
+    const moonGeometry = new THREE.SphereGeometry(sceneRadius, 32, 32);
     const moonMaterial = new THREE.MeshStandardMaterial({
       map: moonTex,
       bumpMap: moonBump,
@@ -50,11 +53,12 @@ export default class Moon implements ICelestialBody {
 
     this.moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
     this.moonMesh.rotation.z = THREE.MathUtils.degToRad(MOON_AXIS_TILT_DEG);
-    this.moonMesh.position.set(0, 0, -MOON_DISTANCE_SCENE * ratio);
+    // Apply region ratio as divisor for orbital distance
+    this.moonMesh.position.set(0, 0, -MOON_DISTANCE_SCENE / ratio);
     this.highDetailGroup.add(this.moonMesh);
 
-    // Axis visual
-    const axisLen = Moon.RADIUS * ratio * 2.2;
+    // Axis visual (scale with scene radius)
+    const axisLen = sceneRadius * 2.2;
     const axisGeom = new THREE.BufferGeometry();
     axisGeom.setAttribute(
       "position",
@@ -76,9 +80,10 @@ export default class Moon implements ICelestialBody {
     const positions = new Float32Array(segments * 3);
     for (let i = 0; i < segments; i++) {
       const t = (i / segments) * Math.PI * 2;
-      positions[i * 3] = Math.sin(t) * MOON_DISTANCE_SCENE * ratio;
+      // Orbit ring in region-scaled units
+      positions[i * 3] = Math.sin(t) * (MOON_DISTANCE_SCENE / ratio);
       positions[i * 3 + 1] = 0;
-      positions[i * 3 + 2] = Math.cos(t) * MOON_DISTANCE_SCENE * ratio;
+      positions[i * 3 + 2] = Math.cos(t) * (MOON_DISTANCE_SCENE / ratio);
     }
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -93,7 +98,7 @@ export default class Moon implements ICelestialBody {
 
     // Low-detail representation: small sphere
     const lowGeom = new THREE.SphereGeometry(
-      Math.max(0.5, Moon.RADIUS * ratio * 0.5),
+      Math.max(0.25, sceneRadius * 0.5),
       8,
       8
     );
@@ -104,19 +109,21 @@ export default class Moon implements ICelestialBody {
 
     // Default: high detail visible
     // Store base size for centralized scaling
-    this.group.userData.baseSize = Moon.RADIUS * ratio;
+    this.group.userData.baseSize = sceneRadius;
 
     this.setDetail(true);
   }
 
   public setDetail(isHighDetail: boolean) {
+    this.isHighDetail = isHighDetail;
+    this.group.userData.detailIsHigh = isHighDetail;
     this.highDetailGroup.visible = isHighDetail;
     this.lowDetailGroup.visible = !isHighDetail;
   }
 
   public update(delta = 0.016) {
     this.orbitGroup.rotation.y += Moon.ORBIT_SPEED * delta;
-    if (this.highDetailGroup.visible) {
+    if (this.isHighDetail) {
       this.moonMesh.rotation.y += Moon.ROTATION_SPEED * delta;
     }
   }

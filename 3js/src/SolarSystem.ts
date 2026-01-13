@@ -1,7 +1,12 @@
 import * as THREE from "three";
 import type { IRegion, ICelestialBody, data } from "./config";
 import { PLANET_DATA } from "./Planet";
-import { SUN_RADIUS, AU_SCENE } from "./conversions";
+import {
+  SUN_RADIUS_M,
+  toSceneUnits,
+  AU_SCENE,
+  EARTH_RADIUS_M,
+} from "./conversions";
 import Earth from "./Earth";
 import Sun from "./Sun";
 import Planet from "./Planet";
@@ -57,7 +62,8 @@ export class SolarSystem implements IRegion {
   }
 
   private initHighDetail(ratio: number) {
-    const sunRadius = SUN_RADIUS * ratio;
+    // Compute Sun size from physical meters and region ratio
+    const sunRadius = toSceneUnits(SUN_RADIUS_M, ratio);
 
     const sun = new Sun(undefined, {
       radius: sunRadius,
@@ -86,12 +92,18 @@ export class SolarSystem implements IRegion {
   private initLowDetail(ratio: number) {
     // Simple low-detail dots for each planet
     PLANET_DATA.forEach((p) => {
-      const dotGeo = new THREE.SphereGeometry(p.size * ratio * 2, 8, 8);
+      // Compute a physically-scaled dot radius from planet size (size is in Earth radii)
+      const dotRadius = toSceneUnits(p.size * EARTH_RADIUS_M, ratio);
+      const dotGeo = new THREE.SphereGeometry(
+        Math.max(0.5, dotRadius * 2),
+        8,
+        8
+      );
       const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
       const dot = new THREE.Mesh(dotGeo, dotMat);
 
-      // compute same orbital position math as high-detail
-      const a = p.distance * AU_SCENE * ratio;
+      // compute same orbital position math as high-detail; apply ratio as divisor
+      const a = (p.distance * AU_SCENE) / ratio;
       const angleRad = THREE.MathUtils.degToRad(p.angle);
       const e = p.eccentricity;
       const r = (a * (1 - e * e)) / (1 + e * Math.cos(angleRad));
@@ -103,6 +115,7 @@ export class SolarSystem implements IRegion {
   }
 
   public setDetail(isHighDetail: boolean) {
+    this.group.userData.detailIsHigh = isHighDetail;
     this.highDetailGroup.visible = isHighDetail;
     this.lowDetailGroup.visible = !isHighDetail;
     this.bodies.forEach((b) => {

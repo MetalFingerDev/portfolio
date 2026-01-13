@@ -14,6 +14,7 @@ import {
   updateNavigationList,
   setupNavListClickHandler,
   updateRegionHud,
+  startDebugOverlay,
 } from "./src/console";
 import { setQuality, getQuality } from "./src/quality";
 
@@ -71,6 +72,7 @@ function loadRegion(address: address) {
 
   // If the region exposes a setCamera method, register the ship camera (used for LOD updates)
   (creation as any).setCamera?.(ship as THREE.PerspectiveCamera);
+  creation.group.userData.cameraAssigned = true;
   // Debug: confirm camera assigned for newly loaded region
   console.debug && console.debug(`setCamera called for region ${address}`);
 
@@ -153,15 +155,28 @@ function hyperSpace(targetAddress: address) {
   (stage.get(previousAddress) as any)?.setCamera?.(
     ship as THREE.PerspectiveCamera
   );
+  (stage.get(previousAddress) as any)?.group.userData &&
+    ((stage.get(previousAddress) as any).group.userData.cameraAssigned = true);
   (stage.get(targetAddress) as any)?.setCamera?.(
     ship as THREE.PerspectiveCamera
   );
+  (stage.get(targetAddress) as any)?.group.userData &&
+    ((stage.get(targetAddress) as any).group.userData.cameraAssigned = true);
+
+  // Debug: confirm camera reassignment during hyperSpace
+  console.debug &&
+    console.debug(
+      `setCamera reassigned to prev ${previousAddress}, target ${targetAddress}`
+    );
 
   // 3. Visibility and tracking for frontier
   const frontier = stage.get(targetAddress);
   if (frontier) {
     // Rely on setDetail to control visible internals; ensure camera is registered so any LOD or helpers can use it
     (frontier as any).setCamera?.(ship as THREE.PerspectiveCamera);
+    frontier.group.userData.cameraAssigned = true;
+    console.debug &&
+      console.debug(`setCamera called for frontier ${targetAddress}`);
 
     const anchor = frontier.group.getObjectByName("Solar System Anchor");
     if (anchor) trackedObject = anchor;
@@ -183,7 +198,9 @@ function hyperSpace(targetAddress: address) {
   });
 
   controls.update();
-  updateRegionHud(currentAddress);
+  updateRegionHud(currentAddress, stage);
+  // Start the debug overlay to show regions, camera, and detail state
+  startDebugOverlay(stage);
   setTimeout(() => updateNavigationList(stage, currentAddress), 100);
 }
 
@@ -245,7 +262,11 @@ loadRegion(regions.LOCAL_FLUFF);
 
 const initialRegion = stage.get(currentAddress);
 if (initialRegion) {
-  initialRegion.group.visible = true;
+  initialRegion.setDetail?.(true);
+  initialRegion.setCamera?.(ship as THREE.PerspectiveCamera);
+  initialRegion.group.userData.cameraAssigned = true;
+  console.debug &&
+    console.debug(`initial region camera assigned for ${currentAddress}`);
 }
 
 setupNavListClickHandler(
@@ -258,7 +279,7 @@ setupNavListClickHandler(
   }
 );
 
-updateRegionHud(currentAddress);
+updateRegionHud(currentAddress, stage);
 setTimeout(() => updateNavigationList(stage, currentAddress), 500);
 
 // Keyboard shortcuts to toggle global quality: 1 = low, 2 = medium, 3 = high

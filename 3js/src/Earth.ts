@@ -1,11 +1,12 @@
 import * as THREE from "three";
 import {
-  EARTH_RADIUS,
+  EARTH_RADIUS_M,
+  toSceneUnits,
   EARTH_ROTATION_SPEED,
   perSecondToPerDay,
   EARTH_OBLIQUITY_DEG,
+  AU_SCENE,
 } from "./conversions";
-import { AU_SCENE } from "./conversions";
 import { getFresnelMat } from "./getFresnelMat";
 import type { PlanetData } from "./Planet";
 import type { ICelestialBody } from "./config";
@@ -16,12 +17,12 @@ export default class Earth implements ICelestialBody {
   public group: THREE.Group = new THREE.Group();
   private highDetailGroup: THREE.Group = new THREE.Group();
   private lowDetailGroup: THREE.Group = new THREE.Group();
+  private isHighDetail = true;
 
   private earthMesh!: THREE.Mesh;
   private cloudsMesh!: THREE.Mesh;
   private atmosphereMesh!: THREE.Mesh;
 
-  static RADIUS = EARTH_RADIUS;
   static ROTATION_SPEED = perSecondToPerDay(EARTH_ROTATION_SPEED);
 
   constructor(planet: PlanetData, ratio: number, parent?: THREE.Group) {
@@ -31,17 +32,16 @@ export default class Earth implements ICelestialBody {
     this.group.add(this.highDetailGroup, this.lowDetailGroup);
 
     const loader = new THREE.TextureLoader();
-    const earthGeometry = new THREE.SphereGeometry(
-      Earth.RADIUS * ratio,
-      64,
-      64
-    );
+    // AUTOMATIC SIZING: Use physical meters and region ratio
+    const sceneRadius = toSceneUnits(EARTH_RADIUS_M, ratio);
+
+    const earthGeometry = new THREE.SphereGeometry(sceneRadius, 64, 64);
 
     const earthMaterial = new THREE.MeshPhongMaterial({
       map: loader.load("earth.jpg"),
       bumpMap: loader.load("earth_bump.png"),
       specularMap: loader.load("earth_speck.png"),
-      bumpScale: 4,
+      bumpScale: 4 / ratio,
     });
     this.earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
     this.highDetailGroup.add(this.earthMesh);
@@ -73,7 +73,7 @@ export default class Earth implements ICelestialBody {
       });
       this.group.position.copy(position);
     } else {
-      const a = planet.distance * AU_SCENE * ratio;
+      const a = (planet.distance * AU_SCENE) / ratio;
       const angleRad = THREE.MathUtils.degToRad(planet.angle);
       const e = planet.eccentricity;
       const r = (a * (1 - e * e)) / (1 + e * Math.cos(angleRad));
@@ -85,17 +85,17 @@ export default class Earth implements ICelestialBody {
     }
 
     // Label
-    this.group.add(createLabel(planet.name, planet.size * ratio * 3));
+    this.group.add(createLabel(planet.name, sceneRadius * 3));
 
     // Store base size for centralized scaling decisions
-    this.group.userData.baseSize = Earth.RADIUS * ratio;
+    this.group.userData.baseSize = sceneRadius;
 
     // Add axis visual
-    addAxis(this.earthMesh, Earth.RADIUS * ratio * 2.2);
+    addAxis(this.earthMesh, sceneRadius * 2.2);
 
     // Low-detail fallback: simple sphere for distant view
     const lowGeom = new THREE.SphereGeometry(
-      Math.max(1, Earth.RADIUS * ratio * 0.6),
+      Math.max(0.5, sceneRadius * 0.6),
       8,
       8
     );
@@ -108,12 +108,14 @@ export default class Earth implements ICelestialBody {
   }
 
   public setDetail(isHighDetail: boolean) {
+    this.isHighDetail = isHighDetail;
+    this.group.userData.detailIsHigh = isHighDetail;
     this.highDetailGroup.visible = isHighDetail;
     this.lowDetailGroup.visible = !isHighDetail;
   }
 
   update(delta: number) {
-    if (this.highDetailGroup.visible) {
+    if (this.isHighDetail) {
       this.earthMesh.rotation.y += Earth.ROTATION_SPEED * delta;
       this.cloudsMesh.rotation.y += Earth.ROTATION_SPEED * 1.2 * delta;
     }

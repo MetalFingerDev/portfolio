@@ -15,6 +15,7 @@ export default class Sun implements ICelestialBody {
   public mesh!: THREE.Mesh;
   public light?: THREE.PointLight;
   private rotationSpeed: number;
+  private isHighDetail = true;
 
   constructor(_parent: THREE.Group | undefined, config: Configuration) {
     this.rotationSpeed = 0.01;
@@ -54,7 +55,6 @@ export default class Sun implements ICelestialBody {
       this.addAxis(radius);
     }
 
-    
     const lowMat = new THREE.MeshBasicMaterial({
       color: defaultColor,
       toneMapped: false,
@@ -63,7 +63,6 @@ export default class Sun implements ICelestialBody {
     const lowMesh = new THREE.Mesh(lowGeo, lowMat);
     this.lowDetailGroup.add(lowMesh);
 
-    
     this.group.userData.baseSize = radius;
 
     this.setDetail(detailed);
@@ -86,13 +85,14 @@ export default class Sun implements ICelestialBody {
   }
 
   public setDetail(isHighDetail: boolean) {
+    this.isHighDetail = isHighDetail;
+    this.group.userData.detailIsHigh = isHighDetail;
     this.highDetailGroup.visible = isHighDetail;
     this.lowDetailGroup.visible = !isHighDetail;
   }
 
   public update(delta: number) {
-    if (this.highDetailGroup.visible)
-      this.mesh.rotation.y += this.rotationSpeed * delta;
+    if (this.isHighDetail) this.mesh.rotation.y += this.rotationSpeed * delta;
   }
 
   public setIntensity(v: number) {

@@ -140,7 +140,8 @@ export class MilkyWay implements IRegion {
   }
 
   setDetail(_isHighDetail: boolean): void {
-    // MilkyWay has no separate LOD groups; noop for now
+    // MilkyWay has no separate LOD groups; store state for debug/UI
+    this.group.userData.detailIsHigh = !!_isHighDetail;
   }
 
   public setCamera(camera: THREE.PerspectiveCamera): void {

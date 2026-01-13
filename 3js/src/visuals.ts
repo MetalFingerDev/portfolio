@@ -15,7 +15,8 @@ export function addOrbit(
   parent: THREE.Group,
   opts: OrbitOptions
 ): { orbit: THREE.Line; position: THREE.Vector3 } {
-  const a = opts.distanceAU * AU_SCENE * opts.ratio;
+  // Convert semimajor axis from AU -> scene units and apply region ratio as a divisor
+  const a = (opts.distanceAU * AU_SCENE) / opts.ratio;
   const e = opts.eccentricity;
   const b = a * Math.sqrt(1 - e * e);
   const focusOffset = a * e;

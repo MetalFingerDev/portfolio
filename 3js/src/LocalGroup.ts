@@ -95,7 +95,8 @@ export class LocalGroup implements IRegion {
   }
 
   setDetail(_isHighDetail: boolean): void {
-    // LocalGroup currently doesn't support LOD switching — noop
+    // LocalGroup currently doesn't support LOD switching — store state for UI/debug
+    this.group.userData.detailIsHigh = !!_isHighDetail;
   }
 
   public setCamera(camera: THREE.PerspectiveCamera): void {

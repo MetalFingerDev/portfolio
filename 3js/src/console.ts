@@ -19,10 +19,23 @@ document.addEventListener("click", (e) => {
 });
 
 // Separate HUD update function - decoupled from navigation
-export function updateRegionHud(currentAddress: address): void {
+export function updateRegionHud(
+  currentAddress: address,
+  stage?: Map<address, IRegion>
+): void {
   if (!regionHud) return;
   const cfg = compendium[currentAddress];
-  regionHud.textContent = cfg?.Name || `Region ${currentAddress}`;
+  let txt = cfg?.Name || `Region ${currentAddress}`;
+  if (stage) {
+    try {
+      const r = stage.get(currentAddress);
+      if (r && r.group && r.group.userData) {
+        if (r.group.userData.cameraAssigned) txt += " (camera)";
+        if (r.group.userData.detailIsHigh) txt += " (high)";
+      }
+    } catch (e) {}
+  }
+  regionHud.textContent = txt;
 }
 
 export function updateNavigationList(
@@ -109,4 +122,68 @@ export function setupSceneSelector(onSceneChange: (addr: address) => void) {
 
     sceneSelector.appendChild(btn);
   });
+}
+
+// Debug overlay: shows loaded regions, camera assignment, and detail state
+let _debugInterval: number | undefined;
+export function startDebugOverlay(
+  stage: Map<address, IRegion>,
+  intervalMs = 250
+) {
+  let panel = document.getElementById("debug-overlay") as HTMLElement | null;
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "debug-overlay";
+    panel.style.position = "absolute";
+    panel.style.right = "10px";
+    panel.style.top = "10px";
+    panel.style.background = "rgba(0,0,0,0.65)";
+    panel.style.color = "white";
+    panel.style.padding = "8px";
+    panel.style.fontSize = "12px";
+    panel.style.fontFamily = "monospace";
+    panel.style.zIndex = "9999";
+    panel.style.maxWidth = "260px";
+    panel.style.borderRadius = "4px";
+    document.body.appendChild(panel);
+  }
+
+  function render() {
+    const rows: string[] = [];
+    stage.forEach((region, addr) => {
+      const name = compendium[addr]?.Name || `Region ${addr}`;
+      const camera = !!(
+        region.group &&
+        region.group.userData &&
+        region.group.userData.cameraAssigned
+      );
+      const high = !!(
+        region.group &&
+        region.group.userData &&
+        region.group.userData.detailIsHigh
+      );
+      rows.push(
+        `<div style="margin-bottom:4px"><strong>#${addr}</strong> ${name}<br/><span style="opacity:0.85">detail: ${
+          high ? "HIGH" : "LOW"
+        } &nbsp; camera: ${camera ? "yes" : "no"}</span></div>`
+      );
+    });
+    if (rows.length === 0) rows.push("<div>No regions loaded</div>");
+    panel!.innerHTML =
+      `<div style="font-weight:bold;margin-bottom:6px">Regions (${stage.size})</div>` +
+      rows.join("");
+  }
+
+  render();
+  if (_debugInterval) clearInterval(_debugInterval);
+  _debugInterval = window.setInterval(render, intervalMs) as unknown as number;
+}
+
+export function stopDebugOverlay() {
+  if (_debugInterval) {
+    clearInterval(_debugInterval);
+    _debugInterval = undefined;
+  }
+  const panel = document.getElementById("debug-overlay");
+  if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
 }

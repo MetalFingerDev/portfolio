@@ -38,6 +38,7 @@ export class Laniakea implements IRegion {
   }
 
   setDetail(_isHighDetail: boolean): void {
-    // Laniakea has no LOD switching; noop
+    // Laniakea has no LOD switching; store state for UI/debug
+    this.group.userData.detailIsHigh = !!_isHighDetail;
   }
 }

@@ -23,6 +23,7 @@ export default class InterstellarSpace implements IRegion {
   }
 
   setDetail(_isHighDetail: boolean): void {
+    this.group.userData.detailIsHigh = !!_isHighDetail;
     this.bodies.forEach((b) => {
       try {
         b.setDetail(_isHighDetail);
