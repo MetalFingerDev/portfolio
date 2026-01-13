@@ -4,8 +4,12 @@ import {
   EARTH_ROTATION_SPEED,
   perSecondToPerDay,
   EARTH_OBLIQUITY_DEG,
-} from "./conversions.ts";
-import { getFresnelMat } from "./getFresnelMat.ts";
+} from "./conversions";
+import { AU_SCENE } from "./conversions";
+import { getFresnelMat } from "./getFresnelMat";
+import type { PlanetData } from "./Planet";
+import { createLabel } from "./label";
+import { addOrbit, addAxis } from "./visuals";
 
 export default class Earth {
   public group: THREE.Group;
@@ -16,7 +20,7 @@ export default class Earth {
   static RADIUS = EARTH_RADIUS;
   static ROTATION_SPEED = perSecondToPerDay(EARTH_ROTATION_SPEED);
 
-  constructor(ratio: number) {
+  constructor(planet: PlanetData, ratio: number, parent?: THREE.Group) {
     this.group = new THREE.Group();
     this.group.rotation.z = THREE.MathUtils.degToRad(EARTH_OBLIQUITY_DEG);
 
@@ -52,6 +56,33 @@ export default class Earth {
     this.atmosphereMesh = new THREE.Mesh(earthGeometry, atmosphereMaterial);
     this.atmosphereMesh.scale.setScalar(1.01);
     this.group.add(this.atmosphereMesh);
+
+    // Add orbit (attached to provided parent group when available) and position
+    if (parent) {
+      const { position } = addOrbit(parent, {
+        distanceAU: planet.distance,
+        eccentricity: planet.eccentricity,
+        angleDeg: planet.angle,
+        ratio,
+      });
+      this.group.position.copy(position);
+    } else {
+      const a = planet.distance * AU_SCENE * ratio;
+      const angleRad = THREE.MathUtils.degToRad(planet.angle);
+      const e = planet.eccentricity;
+      const r = (a * (1 - e * e)) / (1 + e * Math.cos(angleRad));
+      this.group.position.set(
+        r * Math.cos(angleRad),
+        0,
+        r * Math.sin(angleRad)
+      );
+    }
+
+    // Label
+    this.group.add(createLabel(planet.name, planet.size * ratio * 3));
+
+    // Add axis visual
+    addAxis(this.earthMesh, Earth.RADIUS * ratio * 2.2);
   }
 
   update(delta: number) {

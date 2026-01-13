@@ -8,6 +8,7 @@ export interface region {
   cfg: data;
   update?: (delta: number) => void;
   destroy: () => void;
+  setDetail(isHighDetail: boolean): void;
 }
 
 export interface data {
@@ -19,17 +20,27 @@ export interface data {
 
 export const regions = {
   SOLAR_SYSTEM: 0,
-  LOCAL_FLUFF: 1,
-  GALAXY: 2,
-  LOCAL_GROUP: 3,
-  LANIAKEA: 4,
+  INTERSTELLAR_SPACE: 1,
+  LOCAL_FLUFF: 2,
+  GALAXY: 3,
+  LOCAL_GROUP: 4,
+  LANIAKEA: 5,
 } as const;
 
 export const compendium: Record<address, data> = {
   [regions.SOLAR_SYSTEM]: {
     Name: "Solar System",
-    Dist: 50000 * AU_SCENE,
+    // Boundary at Kuiper belt (~50 AU)
+    Dist: 50 * AU_SCENE,
     Ratio: 1,
+  },
+  [regions.INTERSTELLAR_SPACE]: {
+    Name: "Interstellar Space",
+    // Region beyond Solar System; set boundary around 1 light-year
+    Dist: 1 * LY_SCENE,
+    // Larger ratio to represent expanded scale
+    Ratio: 10,
+    Offset: 0,
   },
   [regions.LOCAL_FLUFF]: {
     // Lowered Ratio from 1000 to 10
@@ -62,88 +73,12 @@ export const compendium: Record<address, data> = {
   },
 };
 
-export interface PlanetData {
-  name: string;
-  color: number;
-  size: number;
-  distance: number; // Semi-major axis (a) in AU
-  eccentricity: number; // Orbital eccentricity (e)
-  angle: number; // Heliocentric Longitude (degrees) on Jan 1, 2026
-}
-
 export interface GalaxyData {
   name: string;
   color: number;
   size: number; // Diameter in Light Years
   coords: { x: number; y: number; z: number }; // Relative to Milky Way in LY
 }
-
-export const PLANET_DATA: PlanetData[] = [
-  {
-    name: "Mercury",
-    color: 0xaaaaaa,
-    size: 0.38,
-    distance: 0.387,
-    eccentricity: 0.2056,
-    angle: 250,
-  },
-  {
-    name: "Venus",
-    color: 0xffcc33,
-    size: 0.95,
-    distance: 0.723,
-    eccentricity: 0.0067,
-    angle: 282,
-  },
-  {
-    name: "Earth",
-    color: 0x2233ff,
-    size: 1.0,
-    distance: 1.0,
-    eccentricity: 0.0167,
-    angle: 101,
-  },
-  {
-    name: "Mars",
-    color: 0xff4422,
-    size: 0.53,
-    distance: 1.524,
-    eccentricity: 0.0934,
-    angle: 275,
-  },
-  {
-    name: "Jupiter",
-    color: 0xffaa88,
-    size: 11.2,
-    distance: 5.203,
-    eccentricity: 0.0484,
-    angle: 105,
-  },
-  {
-    name: "Saturn",
-    color: 0xeeddaa,
-    size: 9.45,
-    distance: 9.537,
-    eccentricity: 0.0541,
-    angle: 350,
-  },
-  {
-    name: "Uranus",
-    color: 0x99ccff,
-    size: 4.0,
-    distance: 19.19,
-    eccentricity: 0.0472,
-    angle: 55,
-  },
-  {
-    name: "Neptune",
-    color: 0x6688ff,
-    size: 3.88,
-    distance: 30.07,
-    eccentricity: 0.0086,
-    angle: 355,
-  },
-];
 
 export const GALAXY_DATA: GalaxyData[] = [
   {

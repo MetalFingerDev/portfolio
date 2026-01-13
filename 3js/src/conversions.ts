@@ -23,3 +23,12 @@ export const SUN_AXIS_TILT_DEG = 7.25;
 
 export const SECONDS_PER_DAY = 1;
 export const perSecondToPerDay = (v: number) => v * SECONDS_PER_DAY;
+
+// Moon constants (scene units)
+export const MOON_ROTATION = (2 * Math.PI) / (27.321661 * 86400); // rad/sec (approx)
+export const MOON_ORBIT_SPEED = MOON_ROTATION; // similar period
+export const MOON_ORBIT_INCLINATION_DEG = 5.145; // degrees
+export const MOON_DISTANCE_SCENE = auToScene(0.00257); // average distance in AU -> scene units
+
+// Milky Way approximate width (diameter in light years -> scene units)
+export const MILKY_WAY_WIDTH_SCENE = lyToScene(100000);

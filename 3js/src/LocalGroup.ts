@@ -80,4 +80,8 @@ export class LocalGroup implements region {
       }
     });
   }
+
+  setDetail(_isHighDetail: boolean): void {
+    // LocalGroup currently doesn't support LOD switching — noop
+  }
 }

@@ -131,4 +131,8 @@ export class MilkyWay implements region {
       }
     });
   }
+
+  setDetail(_isHighDetail: boolean): void {
+    // MilkyWay has no separate LOD groups; noop for now
+  }
 }

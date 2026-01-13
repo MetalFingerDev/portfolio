@@ -6,6 +6,7 @@ import { lyToScene } from "./src/conversions";
 import { MilkyWay } from "./src/MilkyWay";
 import { LocalFluff } from "./src/LocalFluff";
 import { SolarSystem } from "./src/SolarSystem";
+import InterstellarSpace from "./src/InterstellarSpace";
 import { LocalGroup } from "./src/LocalGroup";
 import { Laniakea } from "./src/Laniakea";
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
@@ -14,6 +15,7 @@ import {
   setupNavListClickHandler,
   updateRegionHud,
 } from "./src/console";
+import { setQuality, getQuality } from "./src/quality";
 
 const canvas = document.querySelector("#bg") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("Canvas not found");
@@ -44,6 +46,7 @@ let currentAddress: address = regions.SOLAR_SYSTEM;
 
 const legend: Record<address, new (cfg: any) => region> = {
   [regions.SOLAR_SYSTEM]: SolarSystem,
+  [regions.INTERSTELLAR_SPACE]: InterstellarSpace,
   [regions.LOCAL_FLUFF]: LocalFluff,
   [regions.GALAXY]: MilkyWay,
   [regions.LOCAL_GROUP]: LocalGroup,
@@ -63,7 +66,14 @@ function loadRegion(address: address) {
 
   stage.set(address, creation);
   space.add(creation.group);
-  creation.group.visible = false;
+  // Set detail level based on whether this is the ship's current region
+  (creation as any).setDetail?.(address === currentAddress);
+
+  // Keep newly loaded regions visible (we'll hide/unload others in hyperSpace)
+  creation.group.visible = true;
+
+  // If the region exposes a setCamera method, register the ship camera (used for LOD updates)
+  (creation as any).setCamera?.(ship as THREE.PerspectiveCamera);
 
   const offset = cfg.Offset || 0; // Retrieve the entry point offset
 
@@ -106,14 +116,13 @@ function unloadRegion(address: address) {
 function hyperSpace(targetAddress: address) {
   trackedObject = null; // Break lock during jump
 
-  const current = compendium[currentAddress];
-  const target = compendium[targetAddress];
+  const previousAddress = currentAddress;
+  const prevCfg = compendium[previousAddress];
+  const targetCfg = compendium[targetAddress];
 
-  // 1. Calculate the ship's current position relative to its own region's center
-  const currentOffset = current.Offset || 0;
-  const targetOffset = target.Offset || 0;
+  // 1. Calculate and apply camera transform from previous -> target
+  const currentOffset = prevCfg.Offset || 0;
 
-  // 2. Move camera to "Local Space" (relative to the Sun/Origin)
   const relativePos = ship.position
     .clone()
     .setX(ship.position.x - currentOffset);
@@ -121,50 +130,47 @@ function hyperSpace(targetAddress: address) {
     .clone()
     .setX(controls.target.x - currentOffset);
 
-  // 3. Apply the scaling factor
-  const factor = current.Ratio / target.Ratio;
+  const factor = prevCfg.Ratio / targetCfg.Ratio;
   relativePos.multiplyScalar(factor);
   relativeTarget.multiplyScalar(factor);
 
-  // Get offsets (already in scene units, need to scale for current region)
-  const currentOffset = (current.Offset || 0) / current.Ratio;
-  const targetOffset = (target.Offset || 0) / target.Ratio;
+  const scaledTargetOffset = (targetCfg.Offset || 0) / targetCfg.Ratio;
 
-  // Remove current offset, scale, then add target offset
   ship.position.x -= currentOffset;
-  // 4. Move camera to the new region's World Space (adding the new Offset)
-  ship.position.copy(relativePos).setX(relativePos.x + targetOffset);
-  ship.position.x += targetOffset;
+  ship.position.copy(relativePos).setX(relativePos.x + scaledTargetOffset);
+  ship.position.x += scaledTargetOffset;
 
   controls.target.x -= currentOffset;
-  controls.target.copy(relativeTarget).setX(relativeTarget.x + targetOffset);
-  controls.target.x += targetOffset;
+  controls.target
+    .copy(relativeTarget)
+    .setX(relativeTarget.x + scaledTargetOffset);
+  controls.target.x += scaledTargetOffset;
 
-  // Visibility and region management
+  // 2. Swap detail levels for previous and target regions
+  (stage.get(previousAddress) as any)?.setDetail?.(false);
+  (stage.get(targetAddress) as any)?.setDetail?.(true);
+
+  // 3. Visibility and tracking for frontier
   const frontier = stage.get(targetAddress);
   if (frontier) {
     frontier.group.visible = true;
 
-    // LOCK ON CALLBACK: Find the placeholder and track it
     const anchor = frontier.group.getObjectByName("Solar System Anchor");
-    if (anchor) {
-      trackedObject = anchor;
-    }
+    if (anchor) trackedObject = anchor;
   }
 
-  const interior = stage.get(currentAddress);
-  if (interior) interior.group.visible = false;
-
+  // After swapping detail, update currentAddress
   currentAddress = targetAddress;
 
-  const actors = [currentAddress, currentAddress - 1, currentAddress + 1];
-  stage.forEach((_, actor) => {
-    if (!actors.includes(actor)) unloadRegion(actor);
+  // 4. Keep only current and neighbor regions loaded
+  const neighbors = [currentAddress, currentAddress - 1, currentAddress + 1];
+  stage.forEach((_, addr) => {
+    if (!neighbors.includes(addr)) unloadRegion(addr);
   });
 
-  actors.forEach((actor) => {
-    if (actor >= regions.SOLAR_SYSTEM && actor <= regions.LANIAKEA) {
-      loadRegion(actor as address);
+  neighbors.forEach((addr) => {
+    if (addr >= regions.SOLAR_SYSTEM && addr <= regions.LANIAKEA) {
+      loadRegion(addr as address);
     }
   });
 
@@ -246,5 +252,19 @@ setupNavListClickHandler(
 
 updateRegionHud(currentAddress);
 setTimeout(() => updateNavigationList(stage, currentAddress), 500);
+
+// Keyboard shortcuts to toggle global quality: 1 = low, 2 = medium, 3 = high
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Digit1") {
+    setQuality("low");
+    console.info("Quality set to", getQuality());
+  } else if (e.code === "Digit2") {
+    setQuality("medium");
+    console.info("Quality set to", getQuality());
+  } else if (e.code === "Digit3") {
+    setQuality("high");
+    console.info("Quality set to", getQuality());
+  }
+});
 
 animate();

@@ -21,4 +21,8 @@ export class Laniakea implements region {
       }
     });
   }
+
+  setDetail(_isHighDetail: boolean): void {
+    // Laniakea has no LOD switching; noop
+  }
 }

@@ -74,4 +74,8 @@ export class LocalFluff implements region {
       if (c.geometry) c.geometry.dispose();
     });
   }
+
+  setDetail(_isHighDetail: boolean): void {
+    // LocalFluff currently has no LOD variants; keep visible/no-op
+  }
 }

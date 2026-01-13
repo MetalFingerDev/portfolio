@@ -1,68 +1,55 @@
 import * as THREE from "three";
 
-export interface SunConfig {
-  radius: number;
-  color?: number;
-  emissive?: number;
-  detailed?: boolean; // If true, adds PointLight and axis
-  rotationSpeed?: number;
+export interface Configuration {
+  radius?: number;
+  detailed?: boolean;
   position?: THREE.Vector3;
+  intensity?: number; // optional light intensity (for detailed mode)
 }
 
 export default class Sun {
-  public sunGroup: THREE.Group;
-  public sunMesh: THREE.Mesh;
-  public sunLight?: THREE.PointLight;
+  public group: THREE.Group;
+  public mesh: THREE.Mesh;
+  public light?: THREE.PointLight;
   private rotationSpeed: number;
 
-  constructor(parent: THREE.Group, config: SunConfig) {
-    this.sunGroup = new THREE.Group();
-    parent.add(this.sunGroup);
+  constructor(parent: THREE.Group, config: Configuration) {
+    this.rotationSpeed = 0.01;
+    this.group = new THREE.Group();
+    parent.add(this.group);
 
-    this.rotationSpeed = config.rotationSpeed ?? 0.01;
-
-    const segments = config.detailed ? 64 : 16;
-    const geometry = new THREE.SphereGeometry(
-      config.radius,
-      segments,
-      segments
-    );
-
-    const material = config.detailed
+    const detailed = config.detailed ?? true;
+    const radius = config.radius ?? 20;
+    const segments = detailed ? 64 : 8; // fewer segments for low-quality placeholder
+    const geometry = new THREE.SphereGeometry(radius, segments, segments);
+    const defaultColor = 0xffffff;
+    const defaultEmissive = 0xffcc33;
+    const material = detailed
       ? new THREE.MeshStandardMaterial({
-          emissive: 0xffcc33,
+          emissive: defaultEmissive,
           emissiveIntensity: 2,
           color: 0x000000,
+          toneMapped: false,
         })
       : new THREE.MeshBasicMaterial({
-          color: config.color ?? 0xffffff,
+          color: defaultColor,
           toneMapped: false,
         });
-
-    this.sunMesh = new THREE.Mesh(geometry, material);
-
+    this.mesh = new THREE.Mesh(geometry, material);
     if (config.position) {
-      this.sunMesh.position.copy(config.position);
+      this.mesh.position.copy(config.position);
     }
+    this.group.add(this.mesh);
+    if (detailed) {
+      const intensity = config.intensity ?? radius * 20;
+      this.light = new THREE.PointLight(0xffffff, intensity, 0, 0.5);
+      this.light.castShadow = true;
+      this.light.shadow.mapSize.set(2048, 2048);
+      this.light.shadow.camera.far = 2000000;
+      this.light.position.copy(this.mesh.position);
 
-    this.sunGroup.add(this.sunMesh);
-
-    if (config.detailed) {
-      this.sunLight = new THREE.PointLight(0xffffff, 600, 0, 0.5);
-
-      this.sunLight.castShadow = true;
-      this.sunLight.shadow.mapSize.set(2048, 2048);
-      this.sunLight.shadow.camera.far = 2000000;
-
-      this.sunLight.position.copy(this.sunMesh.position);
-      this.sunGroup.add(this.sunLight);
-      this.sunMesh.material = new THREE.MeshStandardMaterial({
-        emissive: 0xffcc33,
-        emissiveIntensity: 3,
-        toneMapped: false,
-      });
-
-      this.addAxis(config.radius);
+      this.group.add(this.light);
+      this.addAxis(radius);
     }
   }
 
@@ -73,15 +60,41 @@ export default class Sun {
       new THREE.Vector3(0, -axisLen / 2, 0),
     ];
     const geom = new THREE.BufferGeometry().setFromPoints(points);
-    const mat = new THREE.MeshStandardMaterial({
-      emissive: 0xffcc33,
-      emissiveIntensity: 2,
-      color: 0x000000,
+    const mat = new THREE.LineBasicMaterial({
+      color: 0xffcc33,
+      transparent: true,
+      opacity: 0.9,
     });
-    this.sunMesh.add(new THREE.Line(geom, mat));
+    const line = new THREE.Line(geom, mat);
+    this.mesh.add(line);
   }
 
   public update(delta: number) {
-    this.sunMesh.rotation.y += this.rotationSpeed * delta;
+    this.mesh.rotation.y += this.rotationSpeed * delta;
+  }
+
+  public setIntensity(v: number) {
+    if (this.light) this.light.intensity = v;
+  }
+
+  public destroy() {
+    this.group.traverse((obj: any) => {
+      if (obj.geometry) {
+        try {
+          obj.geometry.dispose();
+        } catch (e) {}
+      }
+      if (obj.material) {
+        try {
+          if (Array.isArray(obj.material))
+            obj.material.forEach((m: any) => m.dispose());
+          else obj.material.dispose();
+        } catch (e) {}
+      }
+      if (obj instanceof THREE.Light && obj.parent) {
+        obj.parent.remove(obj);
+      }
+    });
+    if (this.group.parent) this.group.parent.remove(this.group);
   }
 }
