@@ -1,7 +1,7 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { type address, type region, regions, compendium } from "./src/config";
+import { type address, type IRegion, regions, compendium } from "./src/config";
 import { lyToScene } from "./src/conversions";
 import { MilkyWay } from "./src/MilkyWay";
 import { LocalFluff } from "./src/LocalFluff";
@@ -41,10 +41,10 @@ controls.enableDamping = true;
 const light = new THREE.AmbientLight(0x404040);
 space.add(light);
 
-const stage = new Map<address, region>();
+const stage = new Map<address, IRegion>();
 let currentAddress: address = regions.SOLAR_SYSTEM;
 
-const legend: Record<address, new (cfg: any) => region> = {
+const legend: Record<address, new (cfg: any) => IRegion> = {
   [regions.SOLAR_SYSTEM]: SolarSystem,
   [regions.INTERSTELLAR_SPACE]: InterstellarSpace,
   [regions.LOCAL_FLUFF]: LocalFluff,

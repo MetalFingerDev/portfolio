@@ -1,13 +1,18 @@
 import * as THREE from "three";
-import { type region, type data } from "./config";
+import type { IRegion, ICelestialBody, data } from "./config";
 
-export class LocalFluff implements region {
+export class LocalFluff implements IRegion {
   public group: THREE.Group = new THREE.Group();
   public cfg: data;
+  public bodies: ICelestialBody[] = [];
 
   constructor(cfg: data) {
     this.cfg = cfg;
     this.init();
+  }
+
+  public update(_delta: number): void {
+    // no-op update; could animate subtle movement later
   }
 
   private init() {
@@ -70,12 +75,27 @@ export class LocalFluff implements region {
   }
 
   destroy() {
+    this.bodies.forEach((b) => {
+      try {
+        b.destroy();
+      } catch (e) {}
+    });
+
     this.group.traverse((c: any) => {
       if (c.geometry) c.geometry.dispose();
     });
   }
 
   setDetail(_isHighDetail: boolean): void {
-    // LocalFluff currently has no LOD variants; keep visible/no-op
+    this.bodies.forEach((b) => {
+      try {
+        b.setDetail(_isHighDetail);
+      } catch (e) {}
+    });
+    // LocalFluff currently has no LOD variants beyond bodies; noop
+  }
+
+  public setCamera(camera: THREE.PerspectiveCamera): void {
+    this.group.userData.camera = camera;
   }
 }

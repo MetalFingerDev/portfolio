@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { AU_SCENE } from "./conversions";
 import { createLabel } from "./label";
 import { addOrbit, addAxis } from "./visuals";
+import type { ICelestialBody } from "./config";
 
 export interface PlanetData {
   name: string;
@@ -79,18 +80,20 @@ export const PLANET_DATA: PlanetData[] = [
   },
 ];
 
-export default class Planet {
-  public group: THREE.Group;
-  public mesh: THREE.Mesh;
+export default class Planet implements ICelestialBody {
+  public group: THREE.Group = new THREE.Group();
   public name: string;
   private rotationSpeed: number;
+  private highDetailGroup: THREE.Group = new THREE.Group();
+  private lowDetailGroup: THREE.Group = new THREE.Group();
+  public mesh!: THREE.Mesh;
 
   constructor(planet: PlanetData, ratio: number, parent?: THREE.Group) {
     this.name = planet.name;
     this.rotationSpeed = 0.005;
 
-    this.group = new THREE.Group();
     this.group.name = this.name;
+    this.group.add(this.highDetailGroup, this.lowDetailGroup);
 
     const planetSize = planet.size * ratio;
     const segments = 64;
@@ -107,14 +110,8 @@ export default class Planet {
     this.mesh.receiveShadow = true;
     this.mesh.name = this.name;
 
-    this.group.add(this.mesh);
+    this.highDetailGroup.add(this.mesh);
 
-    // Add visuals: orbit + axis. Pass parent group if available later from SolarSystem.
-    // By default attach orbit to this.group's parent (if present) or this.group.
-    // Caller (SolarSystem) should pass its group as parent when constructing planets.
-    // We'll allow parent to be undefined; addOrbit will require an explicit parent from caller.
-    // For convenience, compute the orbit here with addOrbit when a parent is provided via
-    // `this.group.userData.__parentForOrbit` (set by SolarSystem before constructing).
     if (parent) {
       const { position } = addOrbit(parent, {
         distanceAU: planet.distance,
@@ -124,7 +121,6 @@ export default class Planet {
       });
       this.group.position.copy(position);
     } else {
-      // fallback: compute local position and attach a local orbit
       const a = planet.distance * AU_SCENE * ratio;
       const e = planet.eccentricity;
       const angleRad = THREE.MathUtils.degToRad(planet.angle);
@@ -136,11 +132,10 @@ export default class Planet {
       );
     }
 
-    // add axis to the mesh
     addAxis(this.mesh, planetSize * 2.2);
-
-    // Create label (centralized)
     this.group.add(createLabel(this.name, planetSize * 3));
+    // Store base size for centralized scaling decisions
+    this.group.userData.baseSize = planet.size * ratio;
 
     // Low-detail fallback: simple sphere
     const lowGeo = new THREE.SphereGeometry(
@@ -161,7 +156,8 @@ export default class Planet {
   }
 
   public update(delta: number) {
-    this.mesh.rotation.y += this.rotationSpeed * delta;
+    if (this.highDetailGroup.visible)
+      this.mesh.rotation.y += this.rotationSpeed * delta;
   }
 
   public destroy(): void {

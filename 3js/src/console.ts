@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { type address, type region, compendium, regions } from "./config";
+import { type address, type IRegion, compendium, regions } from "./config";
 
 const navDropdown = document.getElementById("nav-dropdown") as HTMLElement;
 const navToggle = document.getElementById("nav-toggle") as HTMLButtonElement;
@@ -26,7 +26,7 @@ export function updateRegionHud(currentAddress: address): void {
 }
 
 export function updateNavigationList(
-  stage: Map<address, region>,
+  stage: Map<address, IRegion>,
   currentAddress: address
 ) {
   navList.innerHTML = "";
@@ -51,7 +51,7 @@ export function updateNavigationList(
 }
 
 export function setupNavListClickHandler(
-  stage: Map<address, region>,
+  stage: Map<address, IRegion>,
   getCurrentAddress: () => address,
   ship: THREE.PerspectiveCamera,
   controls: OrbitControls,

@@ -1,10 +1,11 @@
 import * as THREE from "three";
-import { type data, type region } from "./config";
+import type { data, IRegion, ICelestialBody } from "./config";
 import { lyToScene } from "./conversions";
 
-export class MilkyWay implements region {
+export class MilkyWay implements IRegion {
   public group: THREE.Group = new THREE.Group();
   public cfg: data;
+  public bodies: ICelestialBody[] = [];
 
   constructor(cfg: data) {
     this.cfg = cfg;
@@ -120,6 +121,12 @@ export class MilkyWay implements region {
   }
 
   destroy(): void {
+    this.bodies.forEach((b) => {
+      try {
+        b.destroy();
+      } catch (e) {}
+    });
+
     this.group.traverse((child: any) => {
       if (child.geometry) child.geometry.dispose();
       if (child.material) {
@@ -134,5 +141,9 @@ export class MilkyWay implements region {
 
   setDetail(_isHighDetail: boolean): void {
     // MilkyWay has no separate LOD groups; noop for now
+  }
+
+  public setCamera(camera: THREE.PerspectiveCamera): void {
+    this.group.userData.camera = camera;
   }
 }

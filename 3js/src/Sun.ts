@@ -1,26 +1,28 @@
 import * as THREE from "three";
+import type { ICelestialBody } from "./config";
 
 export interface Configuration {
   radius?: number;
   detailed?: boolean;
   position?: THREE.Vector3;
-  intensity?: number; // optional light intensity (for detailed mode)
+  intensity?: number;
 }
 
-export default class Sun {
-  public group: THREE.Group;
-  public mesh: THREE.Mesh;
+export default class Sun implements ICelestialBody {
+  public group: THREE.Group = new THREE.Group();
+  private highDetailGroup: THREE.Group = new THREE.Group();
+  private lowDetailGroup: THREE.Group = new THREE.Group();
+  public mesh!: THREE.Mesh;
   public light?: THREE.PointLight;
   private rotationSpeed: number;
 
-  constructor(parent: THREE.Group, config: Configuration) {
+  constructor(_parent: THREE.Group | undefined, config: Configuration) {
     this.rotationSpeed = 0.01;
-    this.group = new THREE.Group();
-    parent.add(this.group);
+    this.group.add(this.highDetailGroup, this.lowDetailGroup);
 
     const detailed = config.detailed ?? true;
     const radius = config.radius ?? 20;
-    const segments = detailed ? 64 : 8; // fewer segments for low-quality placeholder
+    const segments = detailed ? 64 : 8;
     const geometry = new THREE.SphereGeometry(radius, segments, segments);
     const defaultColor = 0xffffff;
     const defaultEmissive = 0xffcc33;
@@ -39,7 +41,7 @@ export default class Sun {
     if (config.position) {
       this.mesh.position.copy(config.position);
     }
-    this.group.add(this.mesh);
+    this.highDetailGroup.add(this.mesh);
     if (detailed) {
       const intensity = config.intensity ?? radius * 20;
       this.light = new THREE.PointLight(0xffffff, intensity, 0, 0.5);
@@ -48,9 +50,23 @@ export default class Sun {
       this.light.shadow.camera.far = 2000000;
       this.light.position.copy(this.mesh.position);
 
-      this.group.add(this.light);
+      this.highDetailGroup.add(this.light);
       this.addAxis(radius);
     }
+
+    
+    const lowMat = new THREE.MeshBasicMaterial({
+      color: defaultColor,
+      toneMapped: false,
+    });
+    const lowGeo = new THREE.SphereGeometry(Math.max(4, radius * 0.6), 8, 8);
+    const lowMesh = new THREE.Mesh(lowGeo, lowMat);
+    this.lowDetailGroup.add(lowMesh);
+
+    
+    this.group.userData.baseSize = radius;
+
+    this.setDetail(detailed);
   }
 
   private addAxis(radius: number) {
@@ -69,8 +85,14 @@ export default class Sun {
     this.mesh.add(line);
   }
 
+  public setDetail(isHighDetail: boolean) {
+    this.highDetailGroup.visible = isHighDetail;
+    this.lowDetailGroup.visible = !isHighDetail;
+  }
+
   public update(delta: number) {
-    this.mesh.rotation.y += this.rotationSpeed * delta;
+    if (this.highDetailGroup.visible)
+      this.mesh.rotation.y += this.rotationSpeed * delta;
   }
 
   public setIntensity(v: number) {

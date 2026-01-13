@@ -3,13 +3,38 @@ import { AU_SCENE, LY_SCENE } from "./conversions";
 
 export type address = (typeof regions)[keyof typeof regions];
 
-export interface region {
+// `region` is provided as a legacy alias below to remain compatible with
+// existing code that imports `type region` from this module.
+
+/**
+ * Interface for individual entities (Planets, Stars, Moons)
+ */
+export interface ICelestialBody {
   group: THREE.Group;
-  cfg: data;
-  update?: (delta: number) => void;
-  destroy: () => void;
+  update(delta: number): void;
+  destroy(): void;
+  // Switches between full textures/geometry and simple point/sprite representations
   setDetail(isHighDetail: boolean): void;
 }
+
+/**
+ * Interface for spatial containers (Solar System, Galaxy, Local Fluff)
+ */
+export interface IRegion {
+  group: THREE.Group;
+  bodies: ICelestialBody[];
+  cfg: data;
+  update(delta: number): void;
+  destroy(): void;
+  // Propagates detail level to all internal bodies
+  setDetail(isHighDetail: boolean): void;
+  // Allow a region to centrally receive the main camera for LOD decisions
+  setCamera(camera: THREE.PerspectiveCamera): void;
+}
+
+// Backwards compatible alias for previous `region` interface name
+// Note: `IRegion` is the canonical region interface used across the codebase.
+// Remove legacy `region` alias to avoid duplication.
 
 export interface data {
   Name?: string;

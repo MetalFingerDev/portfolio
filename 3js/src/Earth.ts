@@ -8,21 +8,27 @@ import {
 import { AU_SCENE } from "./conversions";
 import { getFresnelMat } from "./getFresnelMat";
 import type { PlanetData } from "./Planet";
+import type { ICelestialBody } from "./config";
 import { createLabel } from "./label";
 import { addOrbit, addAxis } from "./visuals";
 
-export default class Earth {
-  public group: THREE.Group;
-  private earthMesh: THREE.Mesh;
-  private cloudsMesh: THREE.Mesh;
-  private atmosphereMesh: THREE.Mesh;
+export default class Earth implements ICelestialBody {
+  public group: THREE.Group = new THREE.Group();
+  private highDetailGroup: THREE.Group = new THREE.Group();
+  private lowDetailGroup: THREE.Group = new THREE.Group();
+
+  private earthMesh!: THREE.Mesh;
+  private cloudsMesh!: THREE.Mesh;
+  private atmosphereMesh!: THREE.Mesh;
 
   static RADIUS = EARTH_RADIUS;
   static ROTATION_SPEED = perSecondToPerDay(EARTH_ROTATION_SPEED);
 
   constructor(planet: PlanetData, ratio: number, parent?: THREE.Group) {
-    this.group = new THREE.Group();
     this.group.rotation.z = THREE.MathUtils.degToRad(EARTH_OBLIQUITY_DEG);
+
+    // Create high/low detail containers
+    this.group.add(this.highDetailGroup, this.lowDetailGroup);
 
     const loader = new THREE.TextureLoader();
     const earthGeometry = new THREE.SphereGeometry(
@@ -38,7 +44,7 @@ export default class Earth {
       bumpScale: 4,
     });
     this.earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
-    this.group.add(this.earthMesh);
+    this.highDetailGroup.add(this.earthMesh);
 
     const cloudsMaterial = new THREE.MeshStandardMaterial({
       map: loader.load("04_earthcloudmap.png"),
@@ -50,14 +56,14 @@ export default class Earth {
     });
     this.cloudsMesh = new THREE.Mesh(earthGeometry, cloudsMaterial);
     this.cloudsMesh.scale.setScalar(1.003);
-    this.group.add(this.cloudsMesh);
+    this.highDetailGroup.add(this.cloudsMesh);
 
     const atmosphereMaterial = getFresnelMat();
     this.atmosphereMesh = new THREE.Mesh(earthGeometry, atmosphereMaterial);
     this.atmosphereMesh.scale.setScalar(1.01);
-    this.group.add(this.atmosphereMesh);
+    this.highDetailGroup.add(this.atmosphereMesh);
 
-    // Add orbit (attached to provided parent group when available) and position
+    // Positioning: attach to parent or compute local position
     if (parent) {
       const { position } = addOrbit(parent, {
         distanceAU: planet.distance,
@@ -81,13 +87,36 @@ export default class Earth {
     // Label
     this.group.add(createLabel(planet.name, planet.size * ratio * 3));
 
+    // Store base size for centralized scaling decisions
+    this.group.userData.baseSize = Earth.RADIUS * ratio;
+
     // Add axis visual
     addAxis(this.earthMesh, Earth.RADIUS * ratio * 2.2);
+
+    // Low-detail fallback: simple sphere for distant view
+    const lowGeom = new THREE.SphereGeometry(
+      Math.max(1, Earth.RADIUS * ratio * 0.6),
+      8,
+      8
+    );
+    const lowMat = new THREE.MeshBasicMaterial({ color: 0x4444ff });
+    const lowMesh = new THREE.Mesh(lowGeom, lowMat);
+    this.lowDetailGroup.add(lowMesh);
+
+    // Default to high detail
+    this.setDetail(true);
+  }
+
+  public setDetail(isHighDetail: boolean) {
+    this.highDetailGroup.visible = isHighDetail;
+    this.lowDetailGroup.visible = !isHighDetail;
   }
 
   update(delta: number) {
-    this.earthMesh.rotation.y += Earth.ROTATION_SPEED * delta;
-    this.cloudsMesh.rotation.y += Earth.ROTATION_SPEED * 1.2 * delta;
+    if (this.highDetailGroup.visible) {
+      this.earthMesh.rotation.y += Earth.ROTATION_SPEED * delta;
+      this.cloudsMesh.rotation.y += Earth.ROTATION_SPEED * 1.2 * delta;
+    }
   }
 
   destroy() {

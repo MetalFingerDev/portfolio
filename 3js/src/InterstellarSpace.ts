@@ -1,9 +1,10 @@
 import * as THREE from "three";
-import type { data, region } from "./config";
+import type { data, IRegion, ICelestialBody } from "./config";
 
-export default class InterstellarSpace implements region {
+export default class InterstellarSpace implements IRegion {
   public group: THREE.Group;
   public cfg: data;
+  public bodies: ICelestialBody[] = [];
 
   constructor(cfg: data) {
     this.cfg = cfg;
@@ -13,14 +14,33 @@ export default class InterstellarSpace implements region {
   }
 
   update(_delta: number) {
-    // no-op for now
+    this.bodies.forEach((b) => {
+      try {
+        b.update(_delta);
+      } catch (e) {}
+    });
+    // no-op for other visuals for now
   }
 
   setDetail(_isHighDetail: boolean): void {
-    // Interstellar space has no high/low detail variants — noop
+    this.bodies.forEach((b) => {
+      try {
+        b.setDetail(_isHighDetail);
+      } catch (e) {}
+    });
+    // Interstellar space has no separate LOD visuals — noop beyond bodies
   }
 
   destroy() {
+    this.bodies.forEach((b) => {
+      try {
+        b.destroy();
+      } catch (e) {}
+    });
     if (this.group.parent) this.group.parent.remove(this.group);
+  }
+
+  public setCamera(camera: THREE.PerspectiveCamera): void {
+    this.group.userData.camera = camera;
   }
 }

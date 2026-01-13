@@ -1,11 +1,18 @@
 import * as THREE from "three";
-import { type data, type region, GALAXY_DATA } from "./config";
+import type {
+  data,
+  IRegion,
+  ICelestialBody,
+  GALAXY_DATA as _GALAXY,
+} from "./config";
+import { GALAXY_DATA } from "./config";
 import { lyToScene } from "./conversions";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
-export class LocalGroup implements region {
+export class LocalGroup implements IRegion {
   public cfg: data;
   public group: THREE.Group = new THREE.Group();
+  public bodies: ICelestialBody[] = [];
 
   constructor(cfg: data) {
     this.cfg = cfg;
@@ -73,6 +80,12 @@ export class LocalGroup implements region {
   }
 
   destroy(): void {
+    this.bodies.forEach((b) => {
+      try {
+        b.destroy();
+      } catch (e) {}
+    });
+
     this.group.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose();
@@ -83,5 +96,9 @@ export class LocalGroup implements region {
 
   setDetail(_isHighDetail: boolean): void {
     // LocalGroup currently doesn't support LOD switching — noop
+  }
+
+  public setCamera(camera: THREE.PerspectiveCamera): void {
+    this.group.userData.camera = camera;
   }
 }
