@@ -141,6 +141,23 @@ export default class Planet {
 
     // Create label (centralized)
     this.group.add(createLabel(this.name, planetSize * 3));
+
+    // Low-detail fallback: simple sphere
+    const lowGeo = new THREE.SphereGeometry(
+      Math.max(0.5, planetSize * 0.6),
+      8,
+      8
+    );
+    const lowMat = new THREE.MeshBasicMaterial({ color: planet.color });
+    const lowMesh = new THREE.Mesh(lowGeo, lowMat);
+    this.lowDetailGroup.add(lowMesh);
+
+    this.setDetail(true);
+  }
+
+  public setDetail(isHighDetail: boolean) {
+    this.highDetailGroup.visible = isHighDetail;
+    this.lowDetailGroup.visible = !isHighDetail;
   }
 
   public update(delta: number) {
