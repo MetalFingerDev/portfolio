@@ -1,4 +1,4 @@
-import "./app.css";
+import "./index.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { type address, type IRegion, regions, compendium } from "./src/config";
@@ -69,11 +69,10 @@ function loadRegion(address: address) {
   // Set detail level based on whether this is the ship's current region
   (creation as any).setDetail?.(address === currentAddress);
 
-  // Keep newly loaded regions visible (we'll hide/unload others in hyperSpace)
-  creation.group.visible = true;
-
   // If the region exposes a setCamera method, register the ship camera (used for LOD updates)
   (creation as any).setCamera?.(ship as THREE.PerspectiveCamera);
+  // Debug: confirm camera assigned for newly loaded region
+  console.debug && console.debug(`setCamera called for region ${address}`);
 
   const offset = cfg.Offset || 0; // Retrieve the entry point offset
 
@@ -150,10 +149,19 @@ function hyperSpace(targetAddress: address) {
   (stage.get(previousAddress) as any)?.setDetail?.(false);
   (stage.get(targetAddress) as any)?.setDetail?.(true);
 
+  // Ensure both regions have the ship camera (useful for LOD computation after swap)
+  (stage.get(previousAddress) as any)?.setCamera?.(
+    ship as THREE.PerspectiveCamera
+  );
+  (stage.get(targetAddress) as any)?.setCamera?.(
+    ship as THREE.PerspectiveCamera
+  );
+
   // 3. Visibility and tracking for frontier
   const frontier = stage.get(targetAddress);
   if (frontier) {
-    frontier.group.visible = true;
+    // Rely on setDetail to control visible internals; ensure camera is registered so any LOD or helpers can use it
+    (frontier as any).setCamera?.(ship as THREE.PerspectiveCamera);
 
     const anchor = frontier.group.getObjectByName("Solar System Anchor");
     if (anchor) trackedObject = anchor;
