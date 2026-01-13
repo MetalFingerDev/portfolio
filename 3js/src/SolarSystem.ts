@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { IRegion, ICelestialBody, data } from "./config";
+import type { IRegion, data } from "./config";
 import { PLANET_DATA } from "./Planet";
 import {
   SUN_RADIUS_M,
@@ -10,21 +10,17 @@ import {
 import Earth from "./Earth";
 import Sun from "./Sun";
 import Planet from "./Planet";
+import BaseRegion from "./BaseRegion";
 
-export class SolarSystem implements IRegion {
-  public group: THREE.Group = new THREE.Group();
+export class SolarSystem extends BaseRegion implements IRegion {
   private highDetailGroup: THREE.Group = new THREE.Group();
   private lowDetailGroup: THREE.Group = new THREE.Group();
-  public cfg: data;
-  public bodies: ICelestialBody[] = [];
-  private camera?: THREE.PerspectiveCamera;
 
   // The distance at which a planet switches to High Detail (e.g., 20 AU)
   private readonly DETAIL_THRESHOLD = 20 * AU_SCENE;
 
   constructor(cfg: data) {
-    this.cfg = cfg;
-    this.group.position.x = cfg.Offset || 0;
+    super(cfg);
 
     // Attach detail groups to main group
     this.group.add(this.highDetailGroup);

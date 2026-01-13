@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { AU_SCENE, toSceneUnits, EARTH_RADIUS_M } from "./conversions";
 import { createLabel } from "./label";
 import { addOrbit, addAxis } from "./visuals";
+import BaseBody from "./BaseBody";
 import type { ICelestialBody } from "./config";
 
 export interface PlanetData {
@@ -80,22 +81,17 @@ export const PLANET_DATA: PlanetData[] = [
   },
 ];
 
-export default class Planet implements ICelestialBody {
-  public group: THREE.Group = new THREE.Group();
+export default class Planet extends BaseBody implements ICelestialBody {
   public name: string;
   private rotationSpeed: number;
-  private highDetailGroup: THREE.Group = new THREE.Group();
-  private lowDetailGroup: THREE.Group = new THREE.Group();
-  private isHighDetail = true;
   public mesh!: THREE.Mesh;
 
   constructor(planet: PlanetData, ratio: number, parent?: THREE.Group) {
+    super();
     this.name = planet.name;
     this.rotationSpeed = 0.005;
 
     this.group.name = this.name;
-    this.group.add(this.highDetailGroup, this.lowDetailGroup);
-
     // Compute size from physical Earth radii and convert to scene units
     const sceneRadius = toSceneUnits(planet.size * EARTH_RADIUS_M, ratio);
     const segments = 64;
@@ -138,7 +134,7 @@ export default class Planet implements ICelestialBody {
     addAxis(this.mesh, sceneRadius * 2.2);
     this.group.add(createLabel(this.name, sceneRadius * 3));
     // Store base size for centralized scaling decisions (use scene units)
-    this.group.userData.baseSize = sceneRadius;
+    this.setBaseSize(sceneRadius);
 
     // Low-detail fallback: simple sphere
     const lowGeo = new THREE.SphereGeometry(
@@ -153,32 +149,8 @@ export default class Planet implements ICelestialBody {
     this.setDetail(true);
   }
 
-  public setDetail(isHighDetail: boolean) {
-    this.isHighDetail = isHighDetail;
-    this.group.userData.detailIsHigh = isHighDetail;
-    this.highDetailGroup.visible = isHighDetail;
-    this.lowDetailGroup.visible = !isHighDetail;
-  }
-
   public update(delta: number) {
-    if (this.isHighDetail) this.mesh.rotation.y += this.rotationSpeed * delta;
-  }
-
-  public destroy(): void {
-    this.group.traverse((obj: any) => {
-      if (obj.geometry) {
-        try {
-          obj.geometry.dispose();
-        } catch (e) {}
-      }
-      if (obj.material) {
-        try {
-          if (Array.isArray(obj.material))
-            obj.material.forEach((m: any) => m.dispose());
-          else obj.material.dispose();
-        } catch (e) {}
-      }
-    });
-    if (this.group.parent) this.group.parent.remove(this.group);
+    if ((this as any).isHighDetail)
+      this.mesh.rotation.y += this.rotationSpeed * delta;
   }
 }

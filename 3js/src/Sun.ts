@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { ICelestialBody } from "./config";
+import BaseBody from "./BaseBody";
 
 export interface Configuration {
   radius?: number;
@@ -8,18 +9,14 @@ export interface Configuration {
   intensity?: number;
 }
 
-export default class Sun implements ICelestialBody {
-  public group: THREE.Group = new THREE.Group();
-  private highDetailGroup: THREE.Group = new THREE.Group();
-  private lowDetailGroup: THREE.Group = new THREE.Group();
+export default class Sun extends BaseBody implements ICelestialBody {
   public mesh!: THREE.Mesh;
   public light?: THREE.PointLight;
   private rotationSpeed: number;
-  private isHighDetail = true;
 
   constructor(_parent: THREE.Group | undefined, config: Configuration) {
+    super();
     this.rotationSpeed = 0.01;
-    this.group.add(this.highDetailGroup, this.lowDetailGroup);
 
     const detailed = config.detailed ?? true;
     const radius = config.radius ?? 20;
@@ -63,7 +60,7 @@ export default class Sun implements ICelestialBody {
     const lowMesh = new THREE.Mesh(lowGeo, lowMat);
     this.lowDetailGroup.add(lowMesh);
 
-    this.group.userData.baseSize = radius;
+    this.setBaseSize(radius);
 
     this.setDetail(detailed);
   }
@@ -84,39 +81,12 @@ export default class Sun implements ICelestialBody {
     this.mesh.add(line);
   }
 
-  public setDetail(isHighDetail: boolean) {
-    this.isHighDetail = isHighDetail;
-    this.group.userData.detailIsHigh = isHighDetail;
-    this.highDetailGroup.visible = isHighDetail;
-    this.lowDetailGroup.visible = !isHighDetail;
-  }
-
   public update(delta: number) {
-    if (this.isHighDetail) this.mesh.rotation.y += this.rotationSpeed * delta;
+    if ((this as any).isHighDetail)
+      this.mesh.rotation.y += this.rotationSpeed * delta;
   }
 
   public setIntensity(v: number) {
     if (this.light) this.light.intensity = v;
-  }
-
-  public destroy() {
-    this.group.traverse((obj: any) => {
-      if (obj.geometry) {
-        try {
-          obj.geometry.dispose();
-        } catch (e) {}
-      }
-      if (obj.material) {
-        try {
-          if (Array.isArray(obj.material))
-            obj.material.forEach((m: any) => m.dispose());
-          else obj.material.dispose();
-        } catch (e) {}
-      }
-      if (obj instanceof THREE.Light && obj.parent) {
-        obj.parent.remove(obj);
-      }
-    });
-    if (this.group.parent) this.group.parent.remove(this.group);
   }
 }

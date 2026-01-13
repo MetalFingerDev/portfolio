@@ -1,12 +1,11 @@
 import * as THREE from "three";
-import type { data, IRegion, ICelestialBody } from "./config";
+import type { data, IRegion } from "./config";
 
-export class Laniakea implements IRegion {
-  public group: THREE.Group = new THREE.Group();
-  public cfg: data;
-  public bodies: ICelestialBody[] = [];
+import BaseRegion from "./BaseRegion";
+
+export class Laniakea extends BaseRegion implements IRegion {
   constructor(cfg: data) {
-    this.cfg = cfg;
+    super(cfg);
   }
 
   public update(_delta: number): void {

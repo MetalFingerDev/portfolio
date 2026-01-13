@@ -1,21 +1,14 @@
 import * as THREE from "three";
-import type {
-  data,
-  IRegion,
-  ICelestialBody,
-  GALAXY_DATA as _GALAXY,
-} from "./config";
+import type { data, IRegion, GALAXY_DATA as _GALAXY } from "./config";
 import { GALAXY_DATA } from "./config";
 import { lyToScene } from "./conversions";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
-export class LocalGroup implements IRegion {
-  public cfg: data;
-  public group: THREE.Group = new THREE.Group();
-  public bodies: ICelestialBody[] = [];
+import BaseRegion from "./BaseRegion";
 
+export class LocalGroup extends BaseRegion implements IRegion {
   constructor(cfg: data) {
-    this.cfg = cfg;
+    super(cfg);
     this.initializeLocalGroup();
   }
 

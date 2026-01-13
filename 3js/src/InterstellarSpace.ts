@@ -1,14 +1,11 @@
 import * as THREE from "three";
-import type { data, IRegion, ICelestialBody } from "./config";
+import type { data, IRegion } from "./config";
 
-export default class InterstellarSpace implements IRegion {
-  public group: THREE.Group;
-  public cfg: data;
-  public bodies: ICelestialBody[] = [];
+import BaseRegion from "./BaseRegion";
 
+export default class InterstellarSpace extends BaseRegion implements IRegion {
   constructor(cfg: data) {
-    this.cfg = cfg;
-    this.group = new THREE.Group();
+    super(cfg);
     this.group.name = cfg.Name || "Interstellar Space";
     // Minimal visual: a faint fog or placeholder could be added later
   }

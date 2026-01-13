@@ -1,14 +1,12 @@
 import * as THREE from "three";
-import type { data, IRegion, ICelestialBody } from "./config";
+import type { data, IRegion } from "./config";
 import { lyToScene } from "./conversions";
 
-export class MilkyWay implements IRegion {
-  public group: THREE.Group = new THREE.Group();
-  public cfg: data;
-  public bodies: ICelestialBody[] = [];
+import BaseRegion from "./BaseRegion";
 
+export class MilkyWay extends BaseRegion implements IRegion {
   constructor(cfg: data) {
-    this.cfg = cfg;
+    super(cfg);
     this.initialize();
   }
 

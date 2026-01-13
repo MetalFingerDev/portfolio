@@ -10,13 +10,10 @@ import {
   toSceneUnits,
 } from "./conversions";
 import type { ICelestialBody } from "./config";
+import BaseBody from "./BaseBody";
 
-export default class Moon implements ICelestialBody {
-  public group: THREE.Group = new THREE.Group();
-  private highDetailGroup: THREE.Group = new THREE.Group();
-  private lowDetailGroup: THREE.Group = new THREE.Group();
+export default class Moon extends BaseBody implements ICelestialBody {
   private orbitGroup: THREE.Group = new THREE.Group();
-  private isHighDetail = true;
 
   private moonMesh!: THREE.Mesh;
 
@@ -25,6 +22,7 @@ export default class Moon implements ICelestialBody {
   static ORBIT_INCLINATION_DEG = MOON_ORBIT_INCLINATION_DEG;
 
   constructor(scene: THREE.Scene, parentGroup?: THREE.Group, ratio = 1) {
+    super();
     // Top-level group contains orbit and detail groups
     this.group.add(this.orbitGroup);
     this.orbitGroup.rotation.x = THREE.MathUtils.degToRad(
@@ -109,36 +107,15 @@ export default class Moon implements ICelestialBody {
 
     // Default: high detail visible
     // Store base size for centralized scaling
-    this.group.userData.baseSize = sceneRadius;
+    this.setBaseSize(sceneRadius);
 
     this.setDetail(true);
   }
 
-  public setDetail(isHighDetail: boolean) {
-    this.isHighDetail = isHighDetail;
-    this.group.userData.detailIsHigh = isHighDetail;
-    this.highDetailGroup.visible = isHighDetail;
-    this.lowDetailGroup.visible = !isHighDetail;
-  }
-
   public update(delta = 0.016) {
     this.orbitGroup.rotation.y += Moon.ORBIT_SPEED * delta;
-    if (this.isHighDetail) {
+    if ((this as any).isHighDetail) {
       this.moonMesh.rotation.y += Moon.ROTATION_SPEED * delta;
     }
-  }
-
-  public destroy() {
-    this.group.traverse((obj) => {
-      if (obj instanceof THREE.Mesh) {
-        obj.geometry.dispose();
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach((m) => m.dispose());
-        } else {
-          obj.material.dispose();
-        }
-      }
-    });
-    if (this.group.parent) this.group.parent.remove(this.group);
   }
 }

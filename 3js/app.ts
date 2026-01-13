@@ -121,7 +121,32 @@ function hyperSpace(targetAddress: address) {
   const prevCfg = compendium[previousAddress];
   const targetCfg = compendium[targetAddress];
 
-  // 1. Calculate and apply camera transform from previous -> target
+  // Ensure the target region is loaded and ready so we can set its detail/camera
+  loadRegion(targetAddress);
+
+  // 1. Swap detail levels so only the target is high-detail
+  (stage.get(previousAddress) as any)?.setDetail?.(false);
+  (stage.get(targetAddress) as any)?.setDetail?.(true);
+
+  // 2. Ensure both regions have the ship camera (useful for LOD computation after swap)
+  (stage.get(previousAddress) as any)?.setCamera?.(
+    ship as THREE.PerspectiveCamera
+  );
+  (stage.get(previousAddress) as any)?.group.userData &&
+    ((stage.get(previousAddress) as any).group.userData.cameraAssigned = true);
+  (stage.get(targetAddress) as any)?.setCamera?.(
+    ship as THREE.PerspectiveCamera
+  );
+  (stage.get(targetAddress) as any)?.group.userData &&
+    ((stage.get(targetAddress) as any).group.userData.cameraAssigned = true);
+
+  // Debug: confirm camera reassignment during hyperSpace
+  console.debug &&
+    console.debug(
+      `setCamera reassigned to prev ${previousAddress}, target ${targetAddress}`
+    );
+
+  // 3. Calculate and apply camera transform from previous -> target
   const currentOffset = prevCfg.Offset || 0;
 
   const relativePos = ship.position
@@ -147,29 +172,7 @@ function hyperSpace(targetAddress: address) {
     .setX(relativeTarget.x + scaledTargetOffset);
   controls.target.x += scaledTargetOffset;
 
-  // 2. Swap detail levels for previous and target regions
-  (stage.get(previousAddress) as any)?.setDetail?.(false);
-  (stage.get(targetAddress) as any)?.setDetail?.(true);
-
-  // Ensure both regions have the ship camera (useful for LOD computation after swap)
-  (stage.get(previousAddress) as any)?.setCamera?.(
-    ship as THREE.PerspectiveCamera
-  );
-  (stage.get(previousAddress) as any)?.group.userData &&
-    ((stage.get(previousAddress) as any).group.userData.cameraAssigned = true);
-  (stage.get(targetAddress) as any)?.setCamera?.(
-    ship as THREE.PerspectiveCamera
-  );
-  (stage.get(targetAddress) as any)?.group.userData &&
-    ((stage.get(targetAddress) as any).group.userData.cameraAssigned = true);
-
-  // Debug: confirm camera reassignment during hyperSpace
-  console.debug &&
-    console.debug(
-      `setCamera reassigned to prev ${previousAddress}, target ${targetAddress}`
-    );
-
-  // 3. Visibility and tracking for frontier
+  // 4. Visibility and tracking for frontier
   const frontier = stage.get(targetAddress);
   if (frontier) {
     // Rely on setDetail to control visible internals; ensure camera is registered so any LOD or helpers can use it
@@ -185,7 +188,7 @@ function hyperSpace(targetAddress: address) {
   // After swapping detail, update currentAddress
   currentAddress = targetAddress;
 
-  // 4. Keep only current and neighbor regions loaded
+  // 5. Keep only current and neighbor regions loaded
   const neighbors = [currentAddress, currentAddress - 1, currentAddress + 1];
   stage.forEach((_, addr) => {
     if (!neighbors.includes(addr)) unloadRegion(addr);

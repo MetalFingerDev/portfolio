@@ -1,13 +1,11 @@
 import * as THREE from "three";
-import type { IRegion, ICelestialBody, data } from "./config";
+import type { IRegion, data } from "./config";
 
-export class LocalFluff implements IRegion {
-  public group: THREE.Group = new THREE.Group();
-  public cfg: data;
-  public bodies: ICelestialBody[] = [];
+import BaseRegion from "./BaseRegion";
 
+export class LocalFluff extends BaseRegion implements IRegion {
   constructor(cfg: data) {
-    this.cfg = cfg;
+    super(cfg);
     this.init();
   }
 
