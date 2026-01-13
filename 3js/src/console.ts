@@ -162,11 +162,29 @@ export function startDebugOverlay(
         region.group.userData &&
         region.group.userData.detailIsHigh
       );
-      rows.push(
-        `<div style="margin-bottom:4px"><strong>#${addr}</strong> ${name}<br/><span style="opacity:0.85">detail: ${
-          high ? "HIGH" : "LOW"
-        } &nbsp; camera: ${camera ? "yes" : "no"}</span></div>`
-      );
+
+      // Build row HTML, include per-body radii when available
+      let html = `<div style="margin-bottom:6px"><strong>#${addr}</strong> ${name}<br/><span style="opacity:0.85">detail: ${
+        high ? "HIGH" : "LOW"
+      } &nbsp; camera: ${camera ? "yes" : "no"}</span>`;
+
+      try {
+        const bodies = (region as any).bodies as any[] | undefined;
+        if (bodies && bodies.length) {
+          const bodyRows = bodies.map((b) => {
+            const bn = b.group?.name || "(unnamed)";
+            const bs = b.group?.userData?.baseSize;
+            const bsTxt = typeof bs === "number" ? bs.toFixed(3) : "—";
+            return `${bn}: ${bsTxt}`;
+          });
+          html += `<div style="margin-top:4px;margin-left:8px;font-size:11px;opacity:0.9">Bodies: ${bodyRows.join(
+            ", "
+          )}</div>`;
+        }
+      } catch (e) {}
+
+      html += `</div>`;
+      rows.push(html);
     });
     if (rows.length === 0) rows.push("<div>No regions loaded</div>");
     panel!.innerHTML =

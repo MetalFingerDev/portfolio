@@ -7,9 +7,7 @@ import {
   AU_SCENE,
   EARTH_RADIUS_M,
 } from "./conversions";
-import Earth from "./Earth";
-import Sun from "./Sun";
-import Planet from "./Planet";
+import CelestialBody from "./CelestialBody";
 import BaseRegion from "./BaseRegion";
 
 export class SolarSystem extends BaseRegion implements IRegion {
@@ -61,27 +59,39 @@ export class SolarSystem extends BaseRegion implements IRegion {
     // Compute Sun size from physical meters and region ratio
     const sunRadius = toSceneUnits(SUN_RADIUS_M, ratio);
 
-    const sun = new Sun(undefined, {
-      radius: sunRadius,
-      detailed: true,
-      intensity: sunRadius * 15,
-      position: new THREE.Vector3(0, 0, 0),
-    });
-    sun.group.name = "Sun";
-    this.highDetailGroup.add(sun.group);
-    this.bodies.push(sun);
+    // Create Sun as a CelestialBody (use physical meters)
+    const sunBody = new CelestialBody(
+      {
+        name: "Sun",
+        radiusMeters: SUN_RADIUS_M,
+        texturePath: "sun.jpg",
+        color: 0xffcc00,
+        intensity: sunRadius * 15,
+      },
+      ratio
+    );
+
+    sunBody.group.name = "Sun";
+    this.highDetailGroup.add(sunBody.group);
+    this.bodies.push(sunBody);
 
     PLANET_DATA.forEach((planet) => {
-      if (planet.name === "Earth") {
-        const earth = new Earth(planet, ratio, this.highDetailGroup);
-        earth.group.name = "Earth";
-        this.highDetailGroup.add(earth.group);
-        this.bodies.push(earth);
-      } else {
-        const planetObj = new Planet(planet, ratio, this.highDetailGroup);
-        this.highDetailGroup.add(planetObj.group);
-        this.bodies.push(planetObj);
-      }
+      // Compute planet radius from PlanetData.size (Earth radii)
+      const radiusMeters = planet.size * EARTH_RADIUS_M;
+      const body = new CelestialBody(
+        {
+          name: planet.name,
+          radiusMeters,
+          texturePath: planet.name === "Earth" ? "earth.jpg" : undefined,
+          color: planet.color,
+          rotationSpeed: 0.005,
+        },
+        ratio
+      );
+
+      body.group.name = planet.name;
+      this.highDetailGroup.add(body.group);
+      this.bodies.push(body);
     });
   }
 
