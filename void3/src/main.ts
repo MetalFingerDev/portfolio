@@ -1,8 +1,22 @@
 import "./style.css";
-import Renderer from "./rendering/index";
+import Display from "./rendering/index";
+
+import { Ship } from "./controls";
+import Space from "./scenes";
+import SystemManager from "./systems";
+import registerer from "./regions";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#app");
 if (!canvas) throw new Error("Canvas not found");
 
-const renderer = new Renderer(canvas, { antialias: true, alpha: false });
-renderer.setSize(window.innerWidth, window.innerHeight);
+const display = new Display(canvas, { antialias: true, alpha: false });
+display.setSize(window.innerWidth, window.innerHeight);
+
+const ship = new Ship({ dom: canvas });
+
+const space = new Space();
+
+const stage = new SystemManager(space, ship.camera, display.renderer);
+
+registerer(stage);
+stage.load("solar-system");
