@@ -29,6 +29,7 @@ export abstract class BaseSystem implements System {
 
   protected manager: SystemManager;
   protected config: SystemConfig;
+  private isHighDetail = true;
 
   constructor(manager: SystemManager, config: SystemConfig = {}) {
     this.manager = manager;
@@ -72,6 +73,7 @@ export abstract class BaseSystem implements System {
   }
 
   public setLOD(isActive: boolean) {
+    this.isHighDetail = isActive;
     if (isActive) {
       // HIGH DETAIL
       this.group.visible = true;
@@ -81,6 +83,10 @@ export abstract class BaseSystem implements System {
       this.group.visible = false;
       this.placeholder.visible = true;
     }
+  }
+
+  public toggleLOD() {
+    this.setLOD(!this.isHighDetail);
   }
 
   public destroy(): void {
@@ -276,6 +282,20 @@ export default class SystemManager {
     // Update all loaded systems; they will only perform work if visible
     for (const sys of this.loadedSystems.values()) {
       sys.update(delta);
+    }
+  }
+
+  public toggleLOD() {
+    const current = this.current as BaseSystem;
+    if (current) current.toggleLOD();
+  }
+
+  public toggleSystem() {
+    const currentId = this.activeSystemId;
+    if (currentId === "solar-system") {
+      this.load("interstellar-space");
+    } else if (currentId === "interstellar-space") {
+      this.load("solar-system");
     }
   }
 

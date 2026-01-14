@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import Star from "../stellar";
 import Planet from "../planetary";
+import type { PlanetConfig } from "../planetary";
 import SystemManager, { BaseSystem } from "../systems";
 
 // Minimal, self-contained systems that act as "regions" for the SystemManager
@@ -17,17 +18,33 @@ export class SolarSystem extends BaseSystem {
     const ratio = (params && params.ratio) || 1;
 
     // HIGH DETAIL: Sun using the shared Star class for consistent behavior
-    const sun = new Star(5, 10, 0xffff00);
+    const sun = new Star(5, 109, 0xffff00);
     sun.name = "Sun";
     this.group.add(sun);
 
-    // Group to contain planets and their orbits
-    const solarGroup = new THREE.Group();
-    solarGroup.name = "solar-system-bodies";
-    this.group.add(solarGroup);
-
-    // Earth
-    new Planet(
+    // Config-driven planetary list
+    const planets: PlanetConfig[] = [
+      {
+        name: "Mercury",
+        radiusMeters: 2439700,
+        distanceAU: 0.39,
+        eccentricity: 0.2056,
+        angleDeg: 0,
+        rotationSpeedRadPerSec: 1.24e-6,
+        obliquityDeg: 0.034,
+        color: 0x8c7853,
+      },
+      {
+        name: "Venus",
+        radiusMeters: 6051800,
+        distanceAU: 0.72,
+        eccentricity: 0.0068,
+        angleDeg: 0,
+        rotationSpeedRadPerSec: -2.99e-7, // retrograde
+        obliquityDeg: 177.4,
+        color: 0xffc649,
+        hasAtmosphere: true,
+      },
       {
         name: "Earth",
         radiusMeters: 6371000,
@@ -42,12 +59,6 @@ export class SolarSystem extends BaseSystem {
         cloudAlphaPath: "05_earthcloudmaptrans.png",
         hasAtmosphere: true,
       },
-      ratio,
-      solarGroup
-    );
-
-    // Mars
-    new Planet(
       {
         name: "Mars",
         radiusMeters: 3389000,
@@ -60,9 +71,66 @@ export class SolarSystem extends BaseSystem {
         hasClouds: false,
         hasAtmosphere: true,
       },
-      ratio,
-      solarGroup
-    );
+      {
+        name: "Jupiter",
+        radiusMeters: 69911000,
+        distanceAU: 5.2,
+        eccentricity: 0.0489,
+        angleDeg: 0,
+        rotationSpeedRadPerSec: 1.76e-4,
+        obliquityDeg: 3.13,
+        color: 0xd8ca9d,
+        hasAtmosphere: true,
+      },
+      {
+        name: "Saturn",
+        radiusMeters: 58232000,
+        distanceAU: 9.54,
+        eccentricity: 0.0557,
+        angleDeg: 0,
+        rotationSpeedRadPerSec: 1.64e-4,
+        obliquityDeg: 26.73,
+        color: 0xfad5a5,
+        hasAtmosphere: true,
+      },
+      {
+        name: "Uranus",
+        radiusMeters: 25362000,
+        distanceAU: 19.19,
+        eccentricity: 0.0472,
+        angleDeg: 0,
+        rotationSpeedRadPerSec: -1.01e-4,
+        obliquityDeg: 97.77,
+        color: 0x4fd0e7,
+        hasAtmosphere: true,
+      },
+      {
+        name: "Neptune",
+        radiusMeters: 24622000,
+        distanceAU: 30.07,
+        eccentricity: 0.0086,
+        angleDeg: 0,
+        rotationSpeedRadPerSec: 1.08e-4,
+        obliquityDeg: 28.32,
+        color: 0x4b70dd,
+        hasAtmosphere: true,
+      },
+      {
+        name: "Pluto",
+        radiusMeters: 1188300,
+        distanceAU: 39.48,
+        eccentricity: 0.2488,
+        angleDeg: 0,
+        rotationSpeedRadPerSec: 1.14e-5,
+        obliquityDeg: 122.53,
+        color: 0x8c7853,
+      },
+    ];
+
+    // Create planets from config
+    for (const config of planets) {
+      new Planet(config, ratio, sun);
+    }
   }
 
   initPlaceholder() {

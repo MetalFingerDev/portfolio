@@ -8,11 +8,13 @@ export default class Star extends THREE.Object3D {
    * @param luminosity Multiplier for light intensity
    * @param radius Visual radius of the star sphere
    * @param color Hex color for both mesh and light
+   * @param planets Optional array of planets to attach immediately
    */
   constructor(
     luminosity = 1,
     radius = 1,
-    color: number | THREE.Color = 0xffcc00
+    color: number | THREE.Color = 0xffcc00,
+    planets: THREE.Object3D[] = []
   ) {
     super();
     this.luminosity = luminosity;
@@ -32,5 +34,19 @@ export default class Star extends THREE.Object3D {
     );
     this.light.name = "star-light";
     this.add(this.light);
+
+    // Add any planets passed during initialization
+    if (planets.length > 0) {
+      this.addPlanets(planets);
+    }
+  }
+
+  /**
+   * Helper to add planets to the Star's group/coordinate system
+   */
+  addPlanets(planets: THREE.Object3D[]) {
+    planets.forEach((planet) => {
+      this.add(planet);
+    });
   }
 }

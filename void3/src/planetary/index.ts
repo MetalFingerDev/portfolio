@@ -35,7 +35,7 @@ export default class Planet extends THREE.Object3D {
   private rotationSpeed = 0;
   public name: string;
 
-  constructor(config: PlanetConfig, ratio = 1, parent?: THREE.Group) {
+  constructor(config: PlanetConfig, ratio = 1, parent?: THREE.Object3D) {
     super();
     this.name = config.name;
 

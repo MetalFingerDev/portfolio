@@ -34,6 +34,16 @@ function onResize() {
 
 window.addEventListener("resize", onResize);
 
+// Keyboard controls for LOD and system switching
+document.addEventListener("keydown", (e) => {
+  if (e.key === "l" || e.key === "L") {
+    stage.toggleLOD();
+  }
+  if (e.key === "s" || e.key === "S") {
+    stage.toggleSystem();
+  }
+});
+
 function animate(now = performance.now()) {
   if (!running) return;
   const dt = Math.max(0, (now - lastTime) / 1000);
