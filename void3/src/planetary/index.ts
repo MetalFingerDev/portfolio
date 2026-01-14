@@ -43,6 +43,9 @@ export default class Planet extends THREE.Object3D {
     const sceneRadius = config.radiusMeters / EARTH_RADIUS_M / ratio;
     this.radius = sceneRadius;
 
+    // Default viewing distance for camera traversal (based on radius)
+    (this as any).defaultViewDistance = Math.max(5, this.radius * 10);
+
     this.inner = new THREE.Group();
     this.add(this.inner);
 

@@ -1,7 +1,8 @@
 import "./style.css";
 import Display from "./rendering/index";
+import Visualization from "./visualization";
 
-import { Ship } from "./controls";
+import { Ship, InputHandler } from "./controls";
 import Space from "./scenes";
 import SystemManager from "./systems";
 import registerer from "./regions";
@@ -16,10 +17,15 @@ const ship = new Ship(canvas);
 
 const space = new Space();
 
+const visualization = new Visualization(space, display);
+
 const stage = new SystemManager(space, ship.camera, display.renderer);
+
+const inputHandler = new InputHandler(ship, stage, visualization);
 
 registerer(stage);
 stage.load("solar-system");
+visualization.updateVisibleObjects(stage.current);
 
 // Basic animation loop ---------------------------------------------------
 let lastTime = performance.now();
@@ -34,14 +40,9 @@ function onResize() {
 
 window.addEventListener("resize", onResize);
 
-// Keyboard controls for LOD and system switching
+// Keyboard controls
 document.addEventListener("keydown", (e) => {
-  if (e.key === "l" || e.key === "L") {
-    stage.toggleLOD();
-  }
-  if (e.key === "s" || e.key === "S") {
-    stage.toggleSystem();
-  }
+  inputHandler.handleKey(e.key);
 });
 
 function animate(now = performance.now()) {
@@ -54,7 +55,7 @@ function animate(now = performance.now()) {
   stage.update(dt);
 
   // render current scene
-  display.render(space, ship.camera);
+  visualization.render(ship.camera);
 
   requestAnimationFrame(animate);
 }

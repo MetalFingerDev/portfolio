@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import type SystemManager from "../systems";
+import type Visualization from "../visualization";
 
 export class Ship {
   public camera: THREE.PerspectiveCamera;
@@ -60,8 +62,51 @@ export class Ship {
     this.controls.update();
   }
 
+  /**
+   * Focus camera on an object at a specific distance
+   */
+  public focusOn(object: THREE.Object3D, distance: number) {
+    // Preserve the current viewing direction relative to the target
+    const currentDirection = new THREE.Vector3()
+      .subVectors(this.camera.position, this.controls.target)
+      .normalize();
+
+    // Set new target
+    this.controls.target.copy(object.position);
+
+    // Position camera at the specified distance in the same relative direction
+    this.camera.position
+      .copy(object.position)
+      .add(currentDirection.multiplyScalar(distance));
+
+    this.controls.update();
+  }
+
   public handleResize(w: number, h: number) {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+  }
+}
+
+export class InputHandler {
+  private ship: Ship;
+  private stage: SystemManager;
+  private visualization: Visualization;
+
+  constructor(ship: Ship, stage: SystemManager, visualization: Visualization) {
+    this.ship = ship;
+    this.stage = stage;
+    this.visualization = visualization;
+  }
+
+  public handleKey(key: string) {
+    if (key === "l" || key === "L") {
+      this.stage.toggleLOD();
+    } else if (key === "s" || key === "S") {
+      this.stage.toggleSystem();
+      this.visualization.updateVisibleObjects(this.stage.current);
+    } else if (key === "t" || key === "T") {
+      this.visualization.traverse(this.ship);
+    }
   }
 }

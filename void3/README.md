@@ -28,6 +28,7 @@ A modular TypeScript project for space visualization and simulation built with T
 - **Movement**: Use mouse and keyboard for ship navigation
 - **LOD Toggle**: Press 'L' to switch between high/low detail modes for the active system
 - **System Switch**: Press 'S' to toggle between Solar System and Interstellar Space views
+- **Object Traversal**: Press 'T' to cycle through visible named objects (planets, stars) and focus the camera at optimal distances
 
 ## Architecture Overview 🏗️
 

@@ -43,6 +43,7 @@ systemManager.load("interstellar-space");
 
 - **'S'**: Switch between Interstellar Space and Solar System
 - **'L'**: Toggle LOD between detailed stars and point cloud
+- **'T'**: Traverse visible stars (if named) with camera focusing
 
 ## Development 🔧
 

@@ -35,6 +35,7 @@ systemManager.load("interstellar-space");
 
 - **'S'**: Switch between Solar System and Interstellar Space
 - **'L'**: Toggle Level of Detail for current region
+- **'T'**: Traverse visible named objects (planets, stars) with automatic camera focusing
 
 ## Architecture 🏗️
 

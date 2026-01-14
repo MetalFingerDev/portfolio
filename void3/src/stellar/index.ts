@@ -19,6 +19,9 @@ export default class Star extends THREE.Object3D {
     super();
     this.luminosity = luminosity;
 
+    // Default viewing distance for camera traversal
+    (this as any).defaultViewDistance = radius * 3; // For stars, scale with radius
+
     // visual sphere
     const geo = new THREE.SphereGeometry(radius, 24, 24);
     const mat = new THREE.MeshBasicMaterial({ color });
