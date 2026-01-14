@@ -6,6 +6,7 @@ export interface BodyParams {
   name: string;
   radiusMeters: number;
   texturePath?: string;
+  bumpPath?: string;
   color?: number;
   rotationSpeed?: number;
   emissive?: number;
@@ -17,6 +18,17 @@ export default class CelestialBody implements ICelestialBody {
   private highDetail: THREE.Group = new THREE.Group();
   private lowDetail: THREE.Group = new THREE.Group();
   private mesh!: THREE.Mesh;
+
+  // Expose groups and mesh for wrappers to augment
+  public getHighDetailGroup() {
+    return this.highDetail;
+  }
+  public getLowDetailGroup() {
+    return this.lowDetail;
+  }
+  public getMesh() {
+    return this.mesh;
+  }
   private rotationSpeed: number;
   private light?: THREE.PointLight;
 
@@ -35,6 +47,8 @@ export default class CelestialBody implements ICelestialBody {
     const mat = new THREE.MeshPhongMaterial({
       color: params.color ?? 0xffffff,
       map: params.texturePath ? loader.load(params.texturePath) : undefined,
+      bumpMap: params.bumpPath ? loader.load(params.bumpPath) : undefined,
+      bumpScale: 2,
     } as any);
 
     this.mesh = new THREE.Mesh(geo, mat);

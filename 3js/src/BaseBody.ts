@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { ICelestialBody } from "./config";
+import { disposeObject } from "./utils/threeUtils";
 
 export default abstract class BaseBody implements ICelestialBody {
   public group: THREE.Group = new THREE.Group();
@@ -9,7 +10,10 @@ export default abstract class BaseBody implements ICelestialBody {
 
   constructor() {
     this.group.add(this.highDetailGroup, this.lowDetailGroup);
+    this.initGroups();
   }
+
+  protected abstract initGroups(): void;
 
   public setDetail(isHighDetail: boolean) {
     this.isHighDetail = isHighDetail;
@@ -29,23 +33,7 @@ export default abstract class BaseBody implements ICelestialBody {
   }
 
   public destroy() {
-    this.group.traverse((obj: any) => {
-      if (obj.geometry) {
-        try {
-          obj.geometry.dispose();
-        } catch (e) {}
-      }
-      if (obj.material) {
-        try {
-          if (Array.isArray(obj.material))
-            obj.material.forEach((m: any) => m.dispose());
-          else obj.material.dispose();
-        } catch (e) {}
-      }
-      if (obj instanceof THREE.Light && obj.parent) {
-        obj.parent.remove(obj);
-      }
-    });
+    disposeObject(this.group);
     if (this.group.parent) this.group.parent.remove(this.group);
   }
 }

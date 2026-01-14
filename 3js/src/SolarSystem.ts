@@ -9,6 +9,8 @@ import {
 } from "./conversions";
 import CelestialBody from "./CelestialBody";
 import BaseRegion from "./BaseRegion";
+import { disposeObject } from "./utils/threeUtils";
+import { createPointProxy } from "./factories/ProxyFactory";
 
 export class SolarSystem extends BaseRegion implements IRegion {
   private highDetailGroup: THREE.Group = new THREE.Group();
@@ -100,13 +102,7 @@ export class SolarSystem extends BaseRegion implements IRegion {
     PLANET_DATA.forEach((p) => {
       // Compute a physically-scaled dot radius from planet size (size is in Earth radii)
       const dotRadius = toSceneUnits(p.size * EARTH_RADIUS_M, ratio);
-      const dotGeo = new THREE.SphereGeometry(
-        Math.max(0.5, dotRadius * 2),
-        8,
-        8
-      );
-      const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      const dot = new THREE.Mesh(dotGeo, dotMat);
+      const dot = createPointProxy(0xffffff, dotRadius);
 
       // compute same orbital position math as high-detail; apply ratio as divisor
       const a = (p.distance * AU_SCENE) / ratio;
@@ -156,7 +152,10 @@ export class SolarSystem extends BaseRegion implements IRegion {
         const minVisualSize = 0.05;
         const baseSize = (body.group.userData.baseSize as number) || 1;
         const currentScale = body.group.scale.x || 1;
-        const targetScale = Math.max(1, (distance * minVisualSize) / baseSize);
+        const targetScale = Math.max(
+          1,
+          (distance * minVisualSize) / (baseSize * (this.cfg.Ratio || 1))
+        );
         body.group.scale.setScalar(
           THREE.MathUtils.lerp(currentScale, targetScale, 0.1)
         );
@@ -173,24 +172,7 @@ export class SolarSystem extends BaseRegion implements IRegion {
       } catch (e) {}
     });
 
-    this.group.traverse((obj: any) => {
-      if (obj.geometry) {
-        try {
-          obj.geometry.dispose();
-        } catch (e) {}
-      }
-      if (obj.material) {
-        try {
-          if (Array.isArray(obj.material))
-            obj.material.forEach((m: any) => m.dispose());
-          else obj.material.dispose();
-        } catch (e) {}
-      }
-      if (obj instanceof THREE.Light) {
-        if (obj.parent) obj.parent.remove(obj);
-      }
-    });
-
+    disposeObject(this.group);
     if (this.group.parent) this.group.parent.remove(this.group);
   }
 }

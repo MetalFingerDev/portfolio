@@ -1,8 +1,9 @@
 import * as THREE from "three";
-import { AU_SCENE, toSceneUnits, EARTH_RADIUS_M } from "./conversions";
+import { AU_SCENE, EARTH_RADIUS_M } from "./conversions";
 import { createLabel } from "./label";
 import { addOrbit, addAxis } from "./visuals";
 import BaseBody from "./BaseBody";
+import CelestialBody from "./CelestialBody";
 import type { ICelestialBody } from "./config";
 
 export interface PlanetData {
@@ -83,32 +84,32 @@ export const PLANET_DATA: PlanetData[] = [
 
 export default class Planet extends BaseBody implements ICelestialBody {
   public name: string;
-  private rotationSpeed: number;
-  public mesh!: THREE.Mesh;
+  private inner: CelestialBody;
 
   constructor(planet: PlanetData, ratio: number, parent?: THREE.Group) {
     super();
+    // ... rest
+    super();
     this.name = planet.name;
-    this.rotationSpeed = 0.005;
 
     this.group.name = this.name;
-    // Compute size from physical Earth radii and convert to scene units
-    const sceneRadius = toSceneUnits(planet.size * EARTH_RADIUS_M, ratio);
-    const segments = 64;
-    const geometry = new THREE.SphereGeometry(sceneRadius, segments, segments);
 
-    const material = new THREE.MeshStandardMaterial({
-      color: planet.color,
-      roughness: 0.9,
-      metalness: 0.0,
-    });
+    // Create inner CelestialBody with physical radius
+    this.inner = new CelestialBody(
+      {
+        name: planet.name,
+        radiusMeters: planet.size * EARTH_RADIUS_M,
+        color: planet.color,
+        rotationSpeed: 0.005,
+      },
+      ratio
+    );
 
-    this.mesh = new THREE.Mesh(geometry, material);
-    this.mesh.castShadow = true;
-    this.mesh.receiveShadow = true;
-    this.mesh.name = this.name;
+    // Add the inner group to this group
+    this.group.add(this.inner.group);
 
-    this.highDetailGroup.add(this.mesh);
+    // Get scene radius for axis and label
+    const sceneRadius = (this.inner.group.userData as any).baseSize;
 
     if (parent) {
       const { position } = addOrbit(parent, {
@@ -131,26 +132,28 @@ export default class Planet extends BaseBody implements ICelestialBody {
       );
     }
 
-    addAxis(this.mesh, sceneRadius * 2.2);
+    addAxis(this.inner.getMesh(), sceneRadius * 2.2);
     this.group.add(createLabel(this.name, sceneRadius * 3));
-    // Store base size for centralized scaling decisions (use scene units)
-    this.setBaseSize(sceneRadius);
 
-    // Low-detail fallback: simple sphere
-    const lowGeo = new THREE.SphereGeometry(
-      Math.max(0.5, sceneRadius * 0.6),
-      8,
-      8
-    );
-    const lowMat = new THREE.MeshBasicMaterial({ color: planet.color });
-    const lowMesh = new THREE.Mesh(lowGeo, lowMat);
-    this.lowDetailGroup.add(lowMesh);
-
+    // Set initial detail
     this.setDetail(true);
   }
 
+  protected initGroups() {
+    // Not used in wrapper
+  }
+
   public update(delta: number) {
-    if ((this as any).isHighDetail)
-      this.mesh.rotation.y += this.rotationSpeed * delta;
+    this.inner.update(delta);
+  }
+
+  public setDetail(isHighDetail: boolean) {
+    super.setDetail(isHighDetail);
+    this.inner.setDetail(isHighDetail);
+  }
+
+  public destroy() {
+    this.inner.destroy();
+    super.destroy();
   }
 }

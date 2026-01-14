@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import {
   EARTH_RADIUS_M,
-  toSceneUnits,
   EARTH_ROTATION_SPEED,
   perSecondToPerDay,
   EARTH_OBLIQUITY_DEG,
@@ -12,34 +11,38 @@ import type { PlanetData } from "./Planet";
 import type { ICelestialBody } from "./config";
 import { createLabel } from "./label";
 import { addOrbit, addAxis } from "./visuals";
-import BaseBody from "./BaseBody";
+import CelestialBody from "./CelestialBody";
+import { disposeObject } from "./utils/threeUtils";
 
-export default class Earth extends BaseBody implements ICelestialBody {
-  private earthMesh!: THREE.Mesh;
+export default class Earth implements ICelestialBody {
+  public group: THREE.Group = new THREE.Group();
+  private inner: CelestialBody;
   private cloudsMesh!: THREE.Mesh;
   private atmosphereMesh!: THREE.Mesh;
 
   static ROTATION_SPEED = perSecondToPerDay(EARTH_ROTATION_SPEED);
 
   constructor(planet: PlanetData, ratio: number, parent?: THREE.Group) {
-    super();
+    // Create base celestial body for Earth
+    this.inner = new CelestialBody(
+      {
+        name: "Earth",
+        radiusMeters: EARTH_RADIUS_M,
+        texturePath: "earth.jpg",
+        color: 0x2244ff,
+      },
+      ratio
+    );
+
+    this.group.add(this.inner.group);
     this.group.rotation.z = THREE.MathUtils.degToRad(EARTH_OBLIQUITY_DEG);
 
+    // Use the inner celestial body as the base mesh
     const loader = new THREE.TextureLoader();
-    // AUTOMATIC SIZING: Use physical meters and region ratio
-    const sceneRadius = toSceneUnits(EARTH_RADIUS_M, ratio);
+    const sceneRadius = (this.inner.group.userData as any).baseSize;
+    const baseMesh = this.inner.getMesh();
 
-    const earthGeometry = new THREE.SphereGeometry(sceneRadius, 64, 64);
-
-    const earthMaterial = new THREE.MeshPhongMaterial({
-      map: loader.load("earth.jpg"),
-      bumpMap: loader.load("earth_bump.png"),
-      specularMap: loader.load("earth_speck.png"),
-      bumpScale: 4 / ratio,
-    });
-    this.earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
-    this.highDetailGroup.add(this.earthMesh);
-
+    // Clouds and atmosphere attached to the inner high-detail group
     const cloudsMaterial = new THREE.MeshStandardMaterial({
       map: loader.load("04_earthcloudmap.png"),
       alphaMap: loader.load("05_earthcloudmaptrans.png"),
@@ -48,14 +51,23 @@ export default class Earth extends BaseBody implements ICelestialBody {
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    this.cloudsMesh = new THREE.Mesh(earthGeometry, cloudsMaterial);
+    this.cloudsMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(sceneRadius, 32, 32),
+      cloudsMaterial
+    );
     this.cloudsMesh.scale.setScalar(1.003);
-    this.highDetailGroup.add(this.cloudsMesh);
+    this.inner.getHighDetailGroup().add(this.cloudsMesh);
 
     const atmosphereMaterial = getFresnelMat();
-    this.atmosphereMesh = new THREE.Mesh(earthGeometry, atmosphereMaterial);
+    this.atmosphereMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(sceneRadius, 32, 32),
+      atmosphereMaterial
+    );
     this.atmosphereMesh.scale.setScalar(1.01);
-    this.highDetailGroup.add(this.atmosphereMesh);
+    this.inner.getHighDetailGroup().add(this.atmosphereMesh);
+
+    // Axis visual attached to base mesh
+    addAxis(baseMesh, sceneRadius * 2.2);
 
     // Positioning: attach to parent or compute local position
     if (parent) {
@@ -79,32 +91,28 @@ export default class Earth extends BaseBody implements ICelestialBody {
     }
 
     // Label
-    this.group.add(createLabel(planet.name, sceneRadius * 3));
-
-    // Store base size for centralized scaling decisions
-    this.setBaseSize(sceneRadius);
-
-    // Add axis visual
-    addAxis(this.earthMesh, sceneRadius * 2.2);
-
-    // Low-detail fallback: simple sphere for distant view
-    const lowGeom = new THREE.SphereGeometry(
-      Math.max(0.5, sceneRadius * 0.6),
-      8,
-      8
+    this.group.add(
+      createLabel(
+        planet.name,
+        ((this.inner.group.userData as any).baseSize || 0) * 3
+      )
     );
-    const lowMat = new THREE.MeshBasicMaterial({ color: 0x4444ff });
-    const lowMesh = new THREE.Mesh(lowGeom, lowMat);
-    this.lowDetailGroup.add(lowMesh);
 
-    // Default to high detail
-    this.setDetail(true);
+    // Default to high detail (inner body manages its own detail groups)
+    this.inner.setDetail(true);
+  }
+
+  public setDetail(isHighDetail: boolean) {
+    this.inner.setDetail(isHighDetail);
   }
 
   public update(delta: number) {
-    if ((this as any).isHighDetail) {
-      this.earthMesh.rotation.y += Earth.ROTATION_SPEED * delta;
-      this.cloudsMesh.rotation.y += Earth.ROTATION_SPEED * 1.2 * delta;
-    }
+    this.inner.update(delta);
+    this.cloudsMesh.rotation.y += Earth.ROTATION_SPEED * delta * 1.2;
+  }
+
+  public destroy() {
+    this.inner.destroy();
+    disposeObject(this.group);
   }
 }
