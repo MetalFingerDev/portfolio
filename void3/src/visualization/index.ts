@@ -1,5 +1,5 @@
-import * as THREE from 'three';
-import Renderer from '../rendering';
+import * as THREE from "three";
+import Renderer from "../rendering";
 
 export default class Visualization {
   public scene: THREE.Scene;

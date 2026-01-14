@@ -1,6 +1,6 @@
 export default class Component {
   public id: string;
-  constructor(id = 'component') {
+  constructor(id = "component") {
     this.id = id;
   }
 }

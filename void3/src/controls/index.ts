@@ -1,4 +1,4 @@
-import { Camera, EventDispatcher } from 'three';
+import { Camera, EventDispatcher } from "three";
 
 export default class Controls extends EventDispatcher {
   public camera: Camera;
