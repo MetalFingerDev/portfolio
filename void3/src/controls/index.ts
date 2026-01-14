@@ -1,75 +1,67 @@
-import { Camera, EventDispatcher } from "three";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-export default class Controls extends EventDispatcher {
-  public camera: Camera;
-  constructor(camera: Camera) {
-    super();
-    this.camera = camera;
-  }
-  public update(_delta: number) {
-    // update control state
-  }
-}
-
-export class Ship extends Controls {
+export class Ship {
   public camera: THREE.PerspectiveCamera;
-  public controls?: OrbitControls;
+  public controls: OrbitControls;
 
-  constructor(opts?: {
-    camera?: THREE.PerspectiveCamera;
-    dom?: HTMLElement;
-    initialTarget?: THREE.Vector3;
-    fov?: number;
-    far?: number;
-    distance?: number;
-  }) {
-    const fov = opts?.fov ?? 75;
-    const far = opts?.far ?? 1e9;
-    const camera =
-      opts?.camera ??
-      new THREE.PerspectiveCamera(
-        fov,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        far
-      );
-    camera.position.set(0, 0, opts?.distance ?? 3);
-    super(camera);
-    this.camera = camera;
+  constructor(dom: HTMLElement) {
+    this.camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1e9
+    );
+    this.camera.position.set(0, 2, 10); // Default start
 
-    if (opts?.dom) {
-      const controls = new OrbitControls(camera, opts.dom);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-      controls.enablePan = true;
-      controls.minDistance = 0.1;
-      controls.maxDistance = far;
-      if (opts.initialTarget) controls.target.copy(opts.initialTarget);
-      controls.update();
-      this.controls = controls;
-    }
+    this.controls = new OrbitControls(this.camera, dom);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
   }
 
-  public handleResize(width: number, height: number) {
-    this.camera.aspect = width / height;
+  /**
+   * EXCLUSIVE MOVEMENT HANDLER
+   * This is the only place camera position updates should happen.
+   */
+  public update(_delta: number) {
+    this.controls.update();
+    // If you add keyboard flight controls later, add them here.
+  }
+
+  /**
+   * REFRAME / HYPERSPACE
+   * Handles the coordinate math when switching systems.
+   * * @param factor - How much to scale the current position (oldRatio / newRatio)
+   * @param offsetDelta - The distance shift (newOffset - oldOffset)
+   */
+  public reframe(factor: number, offsetDelta: number) {
+    // 1. Scale the camera position
+    // Matches logic: (x - old) * factor + new -> x * factor + (new - old*factor)
+    // Simplified: Just scale, then apply the offset shift.
+
+    this.camera.position.multiplyScalar(factor);
+    this.camera.position.x += offsetDelta;
+
+    // 2. Scale the Controls Target (LookAt) so we don't lose focus
+    this.controls.target.multiplyScalar(factor);
+    this.controls.target.x += offsetDelta;
+
+    // 3. Update Camera Matrices immediately
+    this.camera.updateProjectionMatrix();
+    this.controls.update();
+  }
+
+  /**
+   * Standard teleport for initial loading or respawning
+   */
+  public teleport(position: THREE.Vector3, lookAt?: THREE.Vector3) {
+    this.camera.position.copy(position);
+    if (lookAt) this.controls.target.copy(lookAt);
+    this.controls.update();
+  }
+
+  public handleResize(w: number, h: number) {
+    this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
-
-  public move(
-    targetPos: THREE.Vector3,
-    lookAt: THREE.Vector3,
-    onComplete?: () => void
-  ) {
-    this.camera.position.copy(targetPos);
-    if (this.controls) {
-      this.controls.target.copy(lookAt);
-      this.controls.update();
-    } else {
-      this.camera.lookAt(lookAt);
-    }
-    if (onComplete) onComplete();
-  }
 }
-
