@@ -1,8 +1,5 @@
-import {
-  Material,
-  MeshStandardMaterial,
-  MeshStandardMaterialParameters,
-} from "three";
+import { Material, MeshStandardMaterial } from "three";
+import type { MeshStandardMaterialParameters } from "three";
 
 export default class MaterialFactory {
   public createStandard(params?: MeshStandardMaterialParameters): Material {
