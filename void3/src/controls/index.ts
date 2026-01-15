@@ -1,112 +1,230 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type SystemManager from "../systems";
-import type Visualization from "../visualization";
 
 export class Ship {
   public camera: THREE.PerspectiveCamera;
   public controls: OrbitControls;
+  private width: number;
+  private height: number;
+  private lastHyperSpaceMs = 0;
+  private static readonly HYPERSPACE_COOLDOWN_MS = 800;
 
-  constructor(dom: HTMLElement) {
+  constructor(domElement: HTMLCanvasElement, initialTarget?: THREE.Vector3) {
+    this.width = domElement.width || window.innerWidth;
+    this.height = domElement.height || window.innerHeight;
+
+    const desiredFar = 1e9;
     this.camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
+      60,
+      this.width / this.height,
       0.1,
-      1e9
+      desiredFar
     );
-    this.camera.position.set(0, 2, 10); // Default start
+    this.camera.position.set(0, 0, 50);
+    this.camera.name = "ship-camera";
 
-    this.controls = new OrbitControls(this.camera, dom);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.08;
-  }
-
-  /**
-   * EXCLUSIVE MOVEMENT HANDLER
-   * This is the only place camera position updates should happen.
-   */
-  public update(_delta: number) {
-    this.controls.update();
-    // If you add keyboard flight controls later, add them here.
-  }
-
-  /**
-   * REFRAME / HYPERSPACE
-   * Handles the coordinate math when switching systems.
-   * * @param factor - How much to scale the current position (oldRatio / newRatio)
-   * @param offsetDelta - The distance shift (newOffset - oldOffset)
-   */
-  public reframe(factor: number, offsetDelta: number) {
-    // 1. Scale the camera position
-    // Matches logic: (x - old) * factor + new -> x * factor + (new - old*factor)
-    // Simplified: Just scale, then apply the offset shift.
-
-    this.camera.position.multiplyScalar(factor);
-    this.camera.position.x += offsetDelta;
-
-    // 2. Scale the Controls Target (LookAt) so we don't lose focus
-    this.controls.target.multiplyScalar(factor);
-    this.controls.target.x += offsetDelta;
-
-    // 3. Update Camera Matrices immediately
-    this.camera.updateProjectionMatrix();
+    this.controls = new OrbitControls(this.camera, domElement);
+    if (initialTarget) this.controls.target.copy(initialTarget);
     this.controls.update();
   }
 
-  /**
-   * Standard teleport for initial loading or respawning
-   */
-  public teleport(position: THREE.Vector3, lookAt?: THREE.Vector3) {
-    this.camera.position.copy(position);
-    if (lookAt) this.controls.target.copy(lookAt);
-    this.controls.update();
-  }
-
-  /**
-   * Focus camera on an object at a specific distance
-   */
-  public focusOn(object: THREE.Object3D, distance: number) {
-    // Preserve the current viewing direction relative to the target
-    const currentDirection = new THREE.Vector3()
-      .subVectors(this.camera.position, this.controls.target)
-      .normalize();
-
-    // Set new target
-    this.controls.target.copy(object.position);
-
-    // Position camera at the specified distance in the same relative direction
-    this.camera.position
-      .copy(object.position)
-      .add(currentDirection.multiplyScalar(distance));
-
-    this.controls.update();
-  }
-
-  public handleResize(w: number, h: number) {
+  handleResize(w: number, h: number) {
+    this.width = w;
+    this.height = h;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.controls.update();
+  }
+
+  update() {
+    this.controls.update();
+  }
+
+  focusOn(target: THREE.Object3D, distance: number = 50) {
+    const pos = new THREE.Vector3();
+    target.getWorldPosition(pos);
+    this.camera.position.copy(pos).add(new THREE.Vector3(0, 0, distance));
+    this.controls.target.copy(pos);
+    this.controls.update();
+  }
+
+  // Visual scale helpers: animate camera zoom and clamp controls to simulate
+  // the ship being scaled down (instead of scaling the entire scene).
+  private _baseMaxDistance?: number;
+  private _zoomAnimId?: number;
+
+  public setVisualScale(targetZoom: number, durationMs: number = 600) {
+    // store base maxDistance once so repeated animations use the same baseline
+    if (this._baseMaxDistance === undefined)
+      this._baseMaxDistance = this.controls.maxDistance;
+
+    const startZoom = this.camera.zoom;
+    const baseMax = this._baseMaxDistance;
+    const startTime = performance.now();
+
+    if (this._zoomAnimId) cancelAnimationFrame(this._zoomAnimId);
+
+    const tick = (t: number) => {
+      const elapsed = t - startTime;
+      const v = Math.min(1, elapsed / durationMs);
+      const zoom = startZoom + (targetZoom - startZoom) * v;
+      this.camera.zoom = zoom;
+      this.camera.updateProjectionMatrix();
+
+      // Keep maxDistance proportional to zoom so controls remain usable
+      this.controls.maxDistance = baseMax * zoom;
+
+      if (v < 1) this._zoomAnimId = requestAnimationFrame(tick);
+      else this._zoomAnimId = undefined;
+    };
+
+    this._zoomAnimId = requestAnimationFrame(tick);
+  }
+
+  public applyTeleport(position: THREE.Vector3, animate: boolean = false) {
+    if (!animate) {
+      this.camera.position.copy(position);
+      this.controls.update();
+      return;
+    }
+
+    const start = this.camera.position.clone();
+    const dest = position.clone();
+    const startTime = performance.now();
+    const duration = 300;
+
+    const tick = (t: number) => {
+      const elapsed = t - startTime;
+      const v = Math.min(1, elapsed / duration);
+      this.camera.position.lerpVectors(start, dest, v);
+      this.controls.update();
+      if (v < 1) requestAnimationFrame(tick);
+    };
+
+    requestAnimationFrame(tick);
+  }
+
+  hyperSpace(
+    system: string,
+    stage: SystemManager,
+    visualization: any,
+    overlay: any
+  ) {
+    const now = performance.now();
+    if (now - this.lastHyperSpaceMs < Ship.HYPERSPACE_COOLDOWN_MS) return;
+
+    this.lastHyperSpaceMs = now;
+
+    // 1. Trigger the system switch in the manager
+    stage.load(system);
+
+    // 2. Reset the Ship/Camera to center the new system
+    this.controls.target.set(0, 0, 0);
+
+    // Arrival distance varies depending on destination so we don't immediately
+    // trigger the inverse automatic hyperspace check.
+    const arrivalDistance =
+      system === "interstellar-space"
+        ? 2000
+        : system === "solar-system"
+        ? 400
+        : system === "milky-way"
+        ? 1500
+        : system === "laniakea-super-cluster"
+        ? 3000
+        : system === "kbc-void"
+        ? 5000
+        : 1000;
+
+    this.camera.position.set(0, 0, arrivalDistance);
+    this.controls.maxDistance = arrivalDistance * 4;
+    this.controls.update();
+
+    if (visualization && visualization.updateVisibleObjects) {
+      visualization.updateVisibleObjects(stage.current);
+    }
+
+    if (overlay) {
+      overlay.update(system, (stage.current?.group.scale.x as number) ?? 1);
+    }
+
+    console.log(
+      `Synthesizing jump to: ${system} (arrive at ${arrivalDistance})`
+    );
   }
 }
 
 export class InputHandler {
   private ship: Ship;
   private stage: SystemManager;
-  private visualization: Visualization;
+  private visualization: any;
+  private overlay: any;
 
-  constructor(ship: Ship, stage: SystemManager, visualization: Visualization) {
+  constructor(
+    ship: Ship,
+    stage: SystemManager,
+    visualization: any,
+    overlay: any
+  ) {
     this.ship = ship;
     this.stage = stage;
     this.visualization = visualization;
+    this.overlay = overlay;
   }
 
-  public handleKey(key: string) {
-    if (key === "l" || key === "L") {
-      this.stage.toggleLOD();
-    } else if (key === "s" || key === "S") {
-      this.stage.toggleSystem();
-      this.visualization.updateVisibleObjects(this.stage.current);
-    } else if (key === "t" || key === "T") {
-      this.visualization.traverse(this.ship);
+  handleKey(key: string) {
+    const k = key.toLowerCase();
+    switch (k) {
+      case "l":
+        // Toggle LOD if the stage exposes a method; safe-guarded
+        if ((this.stage as any).toggleLOD) (this.stage as any).toggleLOD();
+        break;
+      case "s":
+        // FIX: Cycle through ALL systems loaded in test.ts
+        const systems = [
+          "laniakea-super-cluster",
+          "kbc-void",
+          "milky-way",
+          "interstellar-space",
+          "solar-system",
+        ];
+
+        // Safe check for current ID
+        const currentId =
+          (this.stage as any).getActiveSystem?.() || "laniakea-super-cluster";
+
+        // Find current index and calculate next
+        const currentIndex = systems.indexOf(currentId);
+        // If current system isn't in list (or -1), start at 0 (laniakea)
+        const nextIndex = (currentIndex + 1) % systems.length;
+
+        this.ship.hyperSpace(
+          systems[nextIndex],
+          this.stage,
+          this.visualization,
+          this.overlay
+        );
+        break;
+      case "t":
+        // Traverse to the next named object using visualization.traverse
+        if (this.visualization && this.visualization.traverse)
+          this.visualization.traverse(this.ship);
+        break;
+      case "+":
+      case "=":
+        // Smooth increase of current region scale (10% step)
+        if ((this.stage as any).animateCurrentSystemScaleBy)
+          (this.stage as any).animateCurrentSystemScaleBy(1.1, 400);
+        break;
+      case "-":
+      case "_":
+        // Smooth decrease of current region scale (≈10% step)
+        if ((this.stage as any).animateCurrentSystemScaleBy)
+          (this.stage as any).animateCurrentSystemScaleBy(1 / 1.1, 400);
+        break;
+      default:
+        break;
     }
   }
 }

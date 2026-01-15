@@ -27,6 +27,8 @@
     "app.ts",
     "src/Sun.ts",
     "src/conversions.ts",
-    "src/getFresnelMat.ts"
+    "src/getFresnelMat.ts",
+    "../void3/src/sest.ts",
+    "../void3/src/SolarSystem.ts"
   ]
 }

@@ -14,6 +14,11 @@ export default class Display {
       antialias: options.antialias,
       alpha: options.alpha,
     });
+
+    // Improve quality and lighting for large-scale scenes
+    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+    // Ensure lights and color spaces behave physically for materials
+    (this.renderer as any).physicallyCorrectLights = true;
   }
 
   public setSize(width: number, height: number) {

@@ -31,7 +31,8 @@ export default class Visualization {
           obj.name &&
           obj.name !== "star-mesh" &&
           obj.name !== "star-light" &&
-          obj.visible
+          obj.visible &&
+          obj.traversable !== false
         ) {
           this.visibleObjects.push(obj);
         }

@@ -255,6 +255,9 @@ export default class SystemManager {
 
     // track active system
     this.activeSystemId = activeId;
+
+    // notify observers
+    this.onActiveSystemChange?.(this.activeSystemId);
   }
 
   /**
@@ -278,10 +281,51 @@ export default class SystemManager {
     }
   }
 
+  // Animation map for smooth scale transitions
+  private scaleAnimations: Map<
+    string,
+    {
+      from: number;
+      to: number;
+      elapsed: number;
+      duration: number; // ms
+    }
+  > = new Map();
+
+  public onScaleChange?: (id: string, scale: number) => void;
+  public onActiveSystemChange?: (id: string | null) => void;
+
+  public getActiveSystemId(): string | undefined {
+    return this.activeSystemId;
+  }
+
   public update(delta: number): void {
     // Update all loaded systems; they will only perform work if visible
     for (const sys of this.loadedSystems.values()) {
       sys.update(delta);
+    }
+
+    // Progress any scale animations
+    if (this.scaleAnimations.size > 0) {
+      const toRemove: string[] = [];
+      for (const [id, anim] of this.scaleAnimations.entries()) {
+        anim.elapsed += delta * 1000;
+        const t = Math.min(1, anim.elapsed / anim.duration);
+        const newScale = anim.from + (anim.to - anim.from) * t;
+        const sys = this.loadedSystems.get(id);
+        if (sys) {
+          sys.group.scale.setScalar(newScale);
+          if (sys.placeholder) sys.placeholder.scale.setScalar(newScale);
+          // update persisted config
+          (sys as any).config = (sys as any).config || {};
+          (sys as any).config.scale = newScale;
+          // notify observer
+          this.onScaleChange?.(id, newScale);
+        }
+        if (t >= 1) toRemove.push(id);
+      }
+
+      for (const id of toRemove) this.scaleAnimations.delete(id);
     }
   }
 
@@ -297,6 +341,60 @@ export default class SystemManager {
     } else if (currentId === "interstellar-space") {
       this.load("solar-system");
     }
+  }
+
+  /**
+   * Set an explicit scale for a loaded system by id. This updates both the
+   * high-detail group and the placeholder's scale so LOD switches keep visual
+   * consistency.
+   */
+  public setSystemScale(id: string, scale: number): void {
+    const sys = this.loadedSystems.get(id);
+    if (!sys) return;
+    sys.group.scale.setScalar(scale);
+    if (sys.placeholder) sys.placeholder.scale.setScalar(scale);
+    // persist into config for future reloads
+    (sys as any).config = (sys as any).config || {};
+    (sys as any).config.scale = scale;
+    this.onScaleChange?.(id, scale);
+  }
+
+  /**
+   * Adjust the currently active system's scale multiplicatively immediately.
+   */
+  public adjustCurrentSystemScale(factor: number): void {
+    const current = this.current as BaseSystem;
+    if (!current || !this.activeSystemId) return;
+    const currentScale = current.group.scale.x || 1;
+    const newScale = currentScale * factor;
+    this.setSystemScale(this.activeSystemId, newScale);
+  }
+
+  /**
+   * Smoothly animate a system's scale to `to` over `durationMs` milliseconds.
+   */
+  public animateSystemScale(id: string, to: number, durationMs: number = 600) {
+    const sys = this.loadedSystems.get(id);
+    if (!sys) return;
+    const from = sys.group.scale.x || 1;
+    this.scaleAnimations.set(id, {
+      from,
+      to,
+      elapsed: 0,
+      duration: durationMs,
+    });
+  }
+
+  public animateCurrentSystemScaleTo(to: number, durationMs: number = 600) {
+    if (!this.activeSystemId) return;
+    this.animateSystemScale(this.activeSystemId, to, durationMs);
+  }
+
+  public animateCurrentSystemScaleBy(factor: number, durationMs: number = 600) {
+    const current = this.current as BaseSystem;
+    if (!current || !this.activeSystemId) return;
+    const currentScale = current.group.scale.x || 1;
+    this.animateCurrentSystemScaleTo(currentScale * factor, durationMs);
   }
 
   public get current(): System | null {

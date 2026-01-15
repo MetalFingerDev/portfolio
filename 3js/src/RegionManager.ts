@@ -4,7 +4,7 @@ import { regions, compendium } from "./config";
 import { lyToScene } from "./conversions";
 import { MilkyWay } from "./MilkyWay";
 import { LocalFluff } from "./LocalFluff";
-import { SolarSystem } from "./SolarSystem";
+import { SolarSystem } from "../../void3/src/SolarSystem";
 import InterstellarSpace from "./InterstellarSpace";
 import { LocalGroup } from "./LocalGroup";
 import { Laniakea } from "./Laniakea";
@@ -82,7 +82,63 @@ export class RegionManager {
     const region = this.stage.get(address);
     if (!region) return;
 
-    region.destroy();
+    try {
+      region.destroy();
+    } catch (err) {
+      console.warn(`Region.destroy() threw for address ${address}`, err);
+    }
+
+    if (region.group && region.group.parent) {
+      try {
+        region.group.parent.remove(region.group);
+      } catch (err) {
+        console.warn(
+          `Failed to remove region.group for address ${address}`,
+          err
+        );
+      }
+    }
+
+    try {
+      region.group.traverse((obj: THREE.Object3D) => {
+        const mesh = obj as THREE.Mesh;
+        if ((mesh as any).isMesh) {
+          if (
+            mesh.geometry &&
+            typeof (mesh.geometry as any).dispose === "function"
+          ) {
+            try {
+              (mesh.geometry as any).dispose();
+            } catch (e) {
+              /* ignore */
+            }
+          }
+
+          const mat = (mesh as any).material;
+          if (Array.isArray(mat)) {
+            mat.forEach((m) => {
+              if (m && typeof m.dispose === "function") {
+                try {
+                  m.dispose();
+                } catch (e) {
+                  /* ignore */
+                }
+              }
+            });
+          } else if (mat && typeof mat.dispose === "function") {
+            try {
+              mat.dispose();
+            } catch (e) {
+              /* ignore */
+            }
+          }
+        }
+      });
+    } catch (err) {
+      console.warn(`Defensive cleanup failed for region ${address}`, err);
+    }
+
+    // Finally remove from our registry
     this.stage.delete(address);
   }
 

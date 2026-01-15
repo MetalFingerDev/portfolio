@@ -46,6 +46,9 @@ export default class Planet extends THREE.Object3D {
     // Default viewing distance for camera traversal (based on radius)
     (this as any).defaultViewDistance = Math.max(5, this.radius * 10);
 
+    // Traversability for camera traversal (default true for planets)
+    (this as any).traversable = true;
+
     this.inner = new THREE.Group();
     this.add(this.inner);
 
