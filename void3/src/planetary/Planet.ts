@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type CelestialBody } from "./regions/Region";
+import { type CelestialBody } from "../regions/Region";
 
 /**
  * Planet with a visible Mesh

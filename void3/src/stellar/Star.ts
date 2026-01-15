@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type CelestialBody } from "./Region";
+import { type CelestialBody } from "../regions/Region";
 
 /**
  * Simple Star with a visible Mesh and an optional Light
