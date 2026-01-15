@@ -1,7 +1,7 @@
-import { Shell } from "./Shells";
-import { InterstellarMedium } from "./InterstellerMedium";
+import { LocalFluff } from "./LocalFluff";
 import { Region } from "./Region";
-import { Star, Planet } from "./CelestialBodies";
+import { Star } from "./Star";
+import { Planet } from "./Planet";
 
 export class SolarSystem extends Region {
   public sun: Star;
@@ -14,9 +14,7 @@ export class SolarSystem extends Region {
   public uranus: Planet;
   public neptune: Planet;
 
-  // Add the shell property
-  public shell: Shell;
-  public medium: InterstellarMedium; // Add property
+  public fluff: LocalFluff;
 
   constructor(cfg?: any) {
     super(cfg);
@@ -27,7 +25,7 @@ export class SolarSystem extends Region {
     this.sun.name = "Sun";
     this.add(this.sun);
     (this.sun as any).group = this.sun;
-    this.bodies.push(this.sun as any);
+    this.bodies.push(this.sun);
 
     // --- PLANETS ---
     this.mercury = new Planet("Mercury", 0xaaaaaa, 0.8);
@@ -51,42 +49,30 @@ export class SolarSystem extends Region {
     ];
 
     let distance = 10;
-    let maxBoundary = 0; // Track the edge of the system
 
     planets.forEach((p) => {
       this.add(p);
-
       // Position
       p.position.setX(distance);
-
-      // Calculate next position
-      const planetRadius = p.scale.x;
-      distance += 8 + planetRadius * 2;
-
-      // Track farthest point (Position + Radius)
-      maxBoundary = p.position.x + planetRadius;
-
       // Register body
       (p as any).group = p;
-      this.bodies.push(p as any);
+      this.bodies.push(p);
+
+      // Hardcoded spacing logic
+      const planetRadius = p.scale.x;
+      distance += 8 + planetRadius * 2;
     });
 
-    // --- SHELLS ---
-    // Create shells starting just outside the farthest planet (Neptune)
-    // Adding a buffer of 10 units so it doesn't clip through the planet.
-    const innerRadius = maxBoundary + 10;
-    this.shell = new Shell(innerRadius);
-    this.add(this.shell);
-
-    // Register shell as a body so it gets update() calls (rotation)
-    this.bodies.push(this.shell);
+    // --- BOUNDARY (No Shells) ---
+    // Hardcoded boundary for the fluff to start
+    const boundaryRadius = 120;
 
     // --- INTERSTELLAR MEDIUM ---
-    // Cutoff is the Middle Shell boundary (Inner Radius * 10)
-    const middleShellRadius = innerRadius * 10;
-    // Create the medium filling the space up to that boundary
-    this.medium = new InterstellarMedium(middleShellRadius, 15000);
-    this.add(this.medium);
-    this.bodies.push(this.medium);
+    const fluffInner = boundaryRadius * 10; // 1,200
+    const fluffOuter = boundaryRadius * 100; // 12,000
+
+    this.fluff = new LocalFluff(fluffInner, fluffOuter, 300);
+    this.add(this.fluff);
+    this.bodies.push(this.fluff);
   }
 }
