@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Region, type CelestialBody } from "./Region";
-import { Star } from "./Star";
+import { Star } from "../stellar/Star";
 
 export class LocalFluff extends Region implements CelestialBody {
   constructor(

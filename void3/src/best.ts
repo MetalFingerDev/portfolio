@@ -7,6 +7,8 @@ import Space from "./scenes/Space";
 
 import { SolarSystem } from "./regions/SolarSystem";
 import { MilkyWay } from "./regions/MilkyWay";
+// 1. Change Import: Remove MilkyWay, Import LocalGroup
+import { LocalGroup } from "./regions/LocalGroup";
 // --- Setup ---
 
 const canvas = document.querySelector("#app") as HTMLCanvasElement | null;
@@ -41,21 +43,34 @@ if (solar.earth) {
   ship.controls.update();
 }
 
+// 3. Instantiate MilkyWay and LocalGroup so all three regions are present
 const milkyWay = new MilkyWay();
 space.add(milkyWay);
 milkyWay.setCamera(ship.camera);
 milkyWay.setDetail(true);
 
+// The LocalGroup contains the MilkyWay (at 0,0,0) and Andromeda (at distance).
+const localGroup = new LocalGroup();
+space.add(localGroup);
+
+// Pass the camera and detail settings just like before
+localGroup.setCamera(ship.camera);
+localGroup.setDetail(true);
+
 const clock = new THREE.Clock();
 function animate() {
   const delta = clock.getDelta();
   try {
+    // 4. Update the regions
     milkyWay.update(delta);
+    localGroup.update(delta);
     solar.update(delta);
+
+    ship.controls.update();
   } catch (e) {
-    /* defensive */
+    console.error(e);
   }
-  ship.controls.update();
+
   display.render(space, ship.camera);
   requestAnimationFrame(animate);
 }

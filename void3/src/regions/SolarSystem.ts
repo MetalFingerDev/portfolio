@@ -1,5 +1,5 @@
 import { LocalFluff } from "./LocalFluff";
-import { Region } from "./Region";
+import { Region, REGION_SCALE } from "./Region";
 import { Star } from "../stellar/Star";
 import { Planet } from "../planetary/Planet";
 
@@ -74,5 +74,8 @@ export class SolarSystem extends Region {
     this.fluff = new LocalFluff(fluffInner, fluffOuter, 300);
     this.add(this.fluff);
     this.bodies.push(this.fluff);
+
+    // Apply global region scale (enlarges planets, sun and fluff positions)
+    this.scale.setScalar(REGION_SCALE);
   }
 }

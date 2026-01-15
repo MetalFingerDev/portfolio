@@ -1,5 +1,8 @@
 import * as THREE from "three";
 
+// Global scale multiplier applied to major region models (MilkyWay, Andromeda, SolarSystem)
+export const REGION_SCALE = 2;
+
 export interface CelestialBody {
   setDetail(isHighDetail: boolean): void;
   update(delta: number): void;

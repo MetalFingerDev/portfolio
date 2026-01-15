@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Region, type CelestialBody } from "./Region";
-import { Star } from "./Star";
+import { Star } from "../stellar/Star";
 
 export class MilkyWay extends Region implements CelestialBody {
   public mesh: THREE.Mesh;
@@ -31,12 +31,15 @@ export class MilkyWay extends Region implements CelestialBody {
     this.mesh = new THREE.Mesh(geometry, material);
     this.add(this.mesh);
 
+    // Hard-coded scale (2x)
+    this.scale.setScalar(2);
+
     // 3. Fill Volume with Stars
     this.populateStars(radius, thickness);
 
-    // 4. Shift Position
+    // 4. Shift Position (hard-coded)
     // Shift so the Solar System (at 0,0,0) is located halfway out in the disc
-    this.position.set(radius / 2, 0, 0);
+    this.position.set(400000, 0, 0);
 
     this.bodies.push(this);
   }
