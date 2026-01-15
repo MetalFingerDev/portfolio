@@ -1,81 +1,100 @@
-import { LocalFluff } from "./LocalFluff";
-import { Region, REGION_SCALE } from "./Region";
+import { Region } from "./Region";
 import { Star } from "../stellar/Star";
 import { Planet } from "../planetary/Planet";
 
 export class SolarSystem extends Region {
   public sun: Star;
-  public mercury: Planet;
-  public venus: Planet;
-  public earth: Planet;
-  public mars: Planet;
-  public jupiter: Planet;
-  public saturn: Planet;
-  public uranus: Planet;
-  public neptune: Planet;
-
-  public fluff: LocalFluff;
+  public planets: Record<string, Planet> = {}; // Quick access map if needed
 
   constructor(cfg?: any) {
-    super(cfg);
+    // 1. Define Radius:
+    // The furthest planet (Neptune) is roughly at distance 100.
+    // Multiplied by REGION_SCALE (2) = 200.
+    // We set radius to 300 to create a comfortable "High Detail" zone around the system.
+    super({ ...cfg, radius: 2000 });
+
     this.name = "solar-system";
 
     // --- SUN ---
+    // High detail Sun (intensity 5, radius 1.5)
     this.sun = new Star(1.5, 5, 0xffcc00);
     this.sun.name = "Sun";
     this.add(this.sun);
-    (this.sun as any).group = this.sun;
     this.bodies.push(this.sun);
 
-    // --- PLANETS ---
-    this.mercury = new Planet("Mercury", 0xaaaaaa, 0.8);
-    this.venus = new Planet("Venus", 0xe3bb76, 1.2);
-    this.earth = new Planet("Earth", 0x2233ff, 1.3);
-    this.mars = new Planet("Mars", 0xff3300, 1.0);
-    this.jupiter = new Planet("Jupiter", 0xd8ca9d, 3.5);
-    this.saturn = new Planet("Saturn", 0xc5ab6e, 3.0);
-    this.uranus = new Planet("Uranus", 0x4fd0e7, 2.0);
-    this.neptune = new Planet("Neptune", 0x5b5ddf, 2.0);
-
-    const planets = [
-      this.mercury,
-      this.venus,
-      this.earth,
-      this.mars,
-      this.jupiter,
-      this.saturn,
-      this.uranus,
-      this.neptune,
+    // --- PLANETS CONFIGURATION ---
+    // Optimized: Data-driven generation instead of repeated "new Planet()" calls
+    const planetData = [
+      { name: "Mercury", color: 0xaaaaaa, scale: 0.8 },
+      { name: "Venus", color: 0xe3bb76, scale: 1.2 },
+      { name: "Earth", color: 0x2233ff, scale: 1.3 },
+      { name: "Mars", color: 0xff3300, scale: 1.0 },
+      { name: "Jupiter", color: 0xd8ca9d, scale: 3.5 },
+      { name: "Saturn", color: 0xc5ab6e, scale: 3.0 },
+      { name: "Uranus", color: 0x4fd0e7, scale: 2.0 },
+      { name: "Neptune", color: 0x5b5ddf, scale: 2.0 },
     ];
 
-    let distance = 10;
+    let currentDist = 10;
 
-    planets.forEach((p) => {
+    planetData.forEach((data) => {
+      const p = new Planet(data.name, data.color, data.scale);
+
+      // Position Logic
+      p.position.setX(currentDist);
+
       this.add(p);
-      // Position
-      p.position.setX(distance);
-      // Register body
-      (p as any).group = p;
       this.bodies.push(p);
+      this.planets[data.name.toLowerCase()] = p;
 
-      // Hardcoded spacing logic
-      const planetRadius = p.scale.x;
-      distance += 8 + planetRadius * 2;
+      // Spacing update
+      currentDist += 8 + p.scale.x * 2;
     });
 
-    // --- BOUNDARY (No Shells) ---
-    // Hardcoded boundary for the fluff to start
-    const boundaryRadius = 120;
+    // Add some background stars
+    this.populateStars(10);
+  }
 
-    // --- INTERSTELLAR MEDIUM ---
-    const fluffInner = boundaryRadius * 10; // 1,200
-    const fluffOuter = boundaryRadius * 100; // 12,000
+  private populateStars(starCount: number) {
+    for (let i = 0; i < starCount; i++) {
+      const radialDistance = 400000 * Math.sqrt(Math.random());
+      const angle = Math.random() * Math.PI * 2;
+      const height = (Math.random() - 0.5) * 200;
 
-    this.fluff = new LocalFluff(fluffInner, fluffOuter, 300);
-    this.add(this.fluff);
-    this.bodies.push(this.fluff);
+      const x = radialDistance * Math.cos(angle);
+      const z = radialDistance * Math.sin(angle);
 
-    // Apply global region scale (enlarges planets, sun and fluff positions)
-    this.scale.setScalar(REGION_SCALE);
+      const star = new Star(1.5, 50, 0xffcc00);
+      star.position.set(x, height, z);
+      this.add(star);
+
+      this.bodies.push(star);
+    }
+  }
+
+  // Maintain compatibility getters for existing code that expects `solar.earth` etc.
+  public get mercury(): Planet | undefined {
+    return this.planets["mercury"];
+  }
+  public get venus(): Planet | undefined {
+    return this.planets["venus"];
+  }
+  public get earth(): Planet | undefined {
+    return this.planets["earth"];
+  }
+  public get mars(): Planet | undefined {
+    return this.planets["mars"];
+  }
+  public get jupiter(): Planet | undefined {
+    return this.planets["jupiter"];
+  }
+  public get saturn(): Planet | undefined {
+    return this.planets["saturn"];
+  }
+  public get uranus(): Planet | undefined {
+    return this.planets["uranus"];
+  }
+  public get neptune(): Planet | undefined {
+    return this.planets["neptune"];
   }
 }

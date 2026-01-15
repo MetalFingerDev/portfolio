@@ -1,7 +1,7 @@
-import { LocalFluff } from "../LocalFluff";
-import { Region } from "../Region";
-import { Star } from "./Star";
-import { SolarSystem } from "../SolarSystem"; // optional solar to size galaxy
+import { LocalFluff } from "../regions/LocalFluff";
+import { Region } from "../regions/Region";
+import { Star } from "../stellar/Star";
+import { SolarSystem } from "../regions/SolarSystem"; // optional solar to size galaxy
 
 export class Galaxy extends Region {
   public sun: Star;
@@ -33,7 +33,7 @@ export class Galaxy extends Region {
     const middleShellRadius = innerRadius * 10;
     const outerShellRadius = innerRadius * 100;
 
-    this.fluff = new LocalFluff(middleShellRadius, outerShellRadius, 300);
+    this.fluff = new LocalFluff(middleShellRadius, outerShellRadius, 150);
     this.add(this.fluff);
     this.bodies.push(this.fluff);
 

@@ -12,7 +12,7 @@ export class Planet extends THREE.Group implements CelestialBody {
     this.name = name || "Planet";
 
     const geometry = new THREE.SphereGeometry(1, 32, 16);
-    const material = new THREE.MeshStandardMaterial({ color: color });
+    const material = new THREE.MeshBasicMaterial({ color: color });
     this.mesh = new THREE.Mesh(geometry, material);
 
     this.add(this.mesh);

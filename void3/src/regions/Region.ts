@@ -1,13 +1,12 @@
 import * as THREE from "three";
 
-// Global scale multiplier applied to major region models (MilkyWay, Andromeda, SolarSystem)
 export const REGION_SCALE = 2;
 
 export interface CelestialBody {
   setDetail(isHighDetail: boolean): void;
   update(delta: number): void;
   destroy(): void;
-  group?: THREE.Group;
+  group?: THREE.Group | THREE.Object3D;
 }
 
 export class Region extends THREE.Group {
@@ -15,86 +14,71 @@ export class Region extends THREE.Group {
   public camera?: THREE.PerspectiveCamera;
   public cfg: any;
 
+  // New property to define the active "High Detail" zone
+  public radius: number = 0;
+
   constructor(cfg?: any) {
     super();
     this.cfg = cfg || {};
+    // Default radius can be overwritten by child classes (e.g. SolarSystem)
+    this.radius = cfg?.radius || 1000;
   }
 
   public setCamera(camera: THREE.PerspectiveCamera): void {
     this.camera = camera;
     this.userData.camera = camera;
-    this.userData.cameraAssigned = true;
   }
 
   public setDetail(isHighDetail: boolean): void {
+    // Avoid redundant updates if state hasn't changed
+    if (this.userData.detailIsHigh === isHighDetail) return;
+
     this.userData.detailIsHigh = !!isHighDetail;
     this.bodies.forEach((b) => {
-      try {
-        if (b && typeof b.setDetail === "function") b.setDetail(isHighDetail);
-      } catch (e) {
-        /* defensive */
+      if (b && typeof b.setDetail === "function") {
+        b.setDetail(isHighDetail);
       }
     });
   }
 
   public update(delta: number): void {
+    // 1. Perform the Proximity Check
+    if (this.camera) {
+      this.checkRegionEntry();
+    }
+
+    // 2. Standard Update Propogation
     this.bodies.forEach((b) => {
-      try {
-        if (b && typeof b.update === "function") b.update(delta);
-      } catch (e) {
-        /* defensive */
-      }
+      if (b && typeof b.update === "function") b.update(delta);
     });
+  }
+
+  /**
+   * Checks if the camera is inside the Region's radius.
+   * Propagates effect to all children via setDetail().
+   */
+  private checkRegionEntry(): void {
+    if (!this.camera) return;
+
+    // Get world positions to ensure accuracy regardless of scene graph nesting
+    const myPos = new THREE.Vector3();
+    this.getWorldPosition(myPos);
+
+    const camPos = this.camera.position; // Assuming camera is in world space
+    const dist = myPos.distanceTo(camPos);
+
+    // Add a small buffer (hysteresis) to prevent flickering at the boundary
+    const threshold = this.radius * (this.userData.detailIsHigh ? 1.1 : 1.0);
+
+    const isInside = dist < threshold;
+    this.setDetail(isInside);
   }
 
   public destroy(): void {
     this.bodies.forEach((b) => {
-      try {
-        if (b && typeof b.destroy === "function") b.destroy();
-      } catch (e) {
-        /* defensive */
-      }
+      if (b && typeof b.destroy === "function") b.destroy();
     });
     this.bodies = [];
-    this.disposeHierarchy(this);
     if (this.parent) this.parent.remove(this);
-  }
-
-  private disposeHierarchy(obj: THREE.Object3D): void {
-    obj.traverse((child: any) => {
-      if (child.geometry && typeof child.geometry.dispose === "function") {
-        try {
-          child.geometry.dispose();
-        } catch (e) {}
-      }
-      if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach((m: any) => this.disposeMaterial(m));
-        } else {
-          this.disposeMaterial(child.material);
-        }
-      }
-      if (child instanceof THREE.Light && child.parent)
-        child.parent.remove(child);
-    });
-  }
-
-  private disposeMaterial(material: any): void {
-    if (!material) return;
-    try {
-      Object.keys(material).forEach((prop) => {
-        const val = material[prop];
-        if (val && val.isTexture && typeof val.dispose === "function") {
-          try {
-            val.dispose();
-          } catch (e) {}
-        }
-      });
-    } catch (e) {}
-    if (typeof material.dispose === "function") {
-      try {
-        material.dispose();
-      } catch (e) {}
-    }
   }
 }

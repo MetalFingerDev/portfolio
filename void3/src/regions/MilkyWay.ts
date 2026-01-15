@@ -9,20 +9,15 @@ export class MilkyWay extends Region implements CelestialBody {
     super();
     this.name = "MilkyWay";
 
-    // HARDCODED DIMENSIONS
-    // Independent of SolarSystem.
-    // Thickness = 20,000, Radius = 400,000
     const thickness = 20000;
     const radius = 400000;
 
-    // 1. Create Geometry (Cylinder)
     const geometry = new THREE.CylinderGeometry(radius, radius, thickness, 64);
 
-    // 2. Material (Glowing Galactic Disc)
     const material = new THREE.MeshBasicMaterial({
-      color: 0x4b0082, // Indigo/Deep Purple
+      color: 0x4b0082,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.5,
       side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
@@ -31,59 +26,43 @@ export class MilkyWay extends Region implements CelestialBody {
     this.mesh = new THREE.Mesh(geometry, material);
     this.add(this.mesh);
 
-    // Hard-coded scale (2x)
-    this.scale.setScalar(2);
+    this.populateStars(1000);
 
-    // 3. Fill Volume with Stars
-    this.populateStars(radius, thickness);
-
-    // 4. Shift Position (hard-coded)
-    // Shift so the Solar System (at 0,0,0) is located halfway out in the disc
-    this.position.set(400000, 0, 0);
+    this.position.set(200000, 0, 0);
 
     this.bodies.push(this);
   }
 
-  private populateStars(radius: number, thickness: number) {
-    const starCount = 4000;
-    const centerColor = new THREE.Color(0xffcc99); // Warm/Yellow center
-    const edgeColor = new THREE.Color(0x99ccff); // Blue outer rim
-
+  private populateStars(starCount: number) {
     for (let i = 0; i < starCount; i++) {
-      // --- Position Logic ---
-      const rRatio = Math.random();
-      const r = radius * rRatio;
+      const radialDistance = 400000 * Math.sqrt(Math.random());
+      const angle = Math.random() * Math.PI * 2;
+      const height = (Math.random() - 0.5) * 20000;
 
-      const theta = Math.random() * Math.PI * 2;
-      const y = (Math.random() - 0.5) * thickness;
+      const x = radialDistance * Math.cos(angle);
+      const z = radialDistance * Math.sin(angle);
 
-      const x = r * Math.cos(theta);
-      const z = r * Math.sin(theta);
-
-      // --- Visual Logic ---
-      const size = 0.5 + Math.random() * 2.5;
-      const color = centerColor.clone().lerp(edgeColor, rRatio);
-
-      // Create Star (no light to avoid shader uniform overload)
-      const star = new Star(0, size, color.getHex(), false);
-      star.position.set(x, y, z);
-
+      const star = new Star(1.5, 100, 0xffcc00);
+      star.position.set(x, height, z);
+      star.setDetail(true);
       this.add(star);
+
+      this.bodies.push(star);
     }
   }
 
   setDetail(isHighDetail: boolean): void {
+    super.setDetail(isHighDetail);
+
     this.children.forEach((c: any) => {
       try {
         if (c && typeof c.setDetail === "function") c.setDetail(isHighDetail);
       } catch (e) {
-        /* defensive */
       }
     });
   }
 
   update(delta: number): void {
-    // Very slow galactic rotation
     this.rotation.y += 0.0001 * delta;
   }
 
@@ -102,5 +81,7 @@ export class MilkyWay extends Region implements CelestialBody {
         }
       }
     });
+
+    super.destroy();
   }
 }

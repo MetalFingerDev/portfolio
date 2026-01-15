@@ -2,7 +2,7 @@ import "./style.css";
 import Display from "./rendering/Display";
 import Visualization from "./visualization";
 import Overlay from "./ui/overlay";
-import { Ship, InputHandler } from "./controls/Ship";
+import Ship from "./controls/Ship";
 import Space from "./scenes/Space";
 import SystemManager from "./systems";
 import registerer from "./regions";
@@ -43,7 +43,7 @@ stage.setSystemScale("interstellar-space", 1000);
 
 // Load Milky Way to set its scale as well, then return to Solar System.
 stage.load("milky-way");
-stage.setSystemScale("milky-way", 0.1);
+stage.setSystemScale("milky-way", 10);
 
 // Return to Solar System as the active view for interaction/testing.
 stage.load("solar-system");

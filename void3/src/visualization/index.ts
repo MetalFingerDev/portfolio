@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import Renderer from "../rendering/Display";
-import { Ship } from "../controls/Ship";
+import Ship from "../controls/Ship";
 import { type System } from "../systems";
 
 export default class Visualization {

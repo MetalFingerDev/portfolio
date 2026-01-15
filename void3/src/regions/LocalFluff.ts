@@ -6,7 +6,7 @@ export class LocalFluff extends Region implements CelestialBody {
   constructor(
     innerBoundary: number,
     outerBoundary: number,
-    starCount: number = 200
+    starCount: number = 100
   ) {
     super();
     this.name = "LocalFluff";

@@ -7,7 +7,6 @@ import Space from "./scenes/Space";
 
 import { SolarSystem } from "./regions/SolarSystem";
 import { MilkyWay } from "./regions/MilkyWay";
-// 1. Change Import: Remove MilkyWay, Import LocalGroup
 import { LocalGroup } from "./regions/LocalGroup";
 // --- Setup ---
 

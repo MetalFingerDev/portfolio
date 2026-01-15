@@ -1,6 +1,6 @@
 import "./style.css";
 import Display from "./rendering/Display";
-import { Ship, InputHandler } from "./controls/Ship";
+import Ship from "./controls/Ship";
 import Space from "./scenes/Space";
 import SystemManager from "./systems";
 import registerer from "./regions";
