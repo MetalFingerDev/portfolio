@@ -1,12 +1,12 @@
 # utils/math
 
-Purpose: Math helpers, physics formulas, unit conversions, and numerical utilities.
+Purpose: Math helpers and numerical utilities used across the project.
 
 ---
 
-## Overview ✅
+## Overview
 
-Utility math functions and helpers (vectors, calculations, unit conversions) used across the project.
+Pure helper functions for calculations, unit conversions, and common numerical utilities.
 
 ## Usage 💡
 

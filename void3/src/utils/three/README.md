@@ -1,12 +1,12 @@
 # utils/three
 
-Purpose: Three.js helpers, wrappers, and common utilities for 3D rendering.
+Purpose: Helper utilities and wrappers for Three.js usage.
 
 ---
 
-## Overview ✅
+## Overview
 
-Helpers and utilities to make working with Three.js smoother: wrappers, transforms, and small helpers for scene setup and object management.
+Small helpers to reduce boilerplate when setting up scenes, transforms, and common operations
 
 ## Usage 💡
 
