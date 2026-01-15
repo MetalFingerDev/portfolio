@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import Renderer from "../rendering/Display";
 import Ship from "../controls/Ship";
-import { type System } from "../systems";
 
 export default class Visualization {
   public scene: THREE.Scene;
@@ -23,24 +22,7 @@ export default class Visualization {
   /**
    * Update the list of visible named objects for traversal
    */
-  public updateVisibleObjects(system: System | null) {
-    if (system) {
-      this.visibleObjects = [];
-      system.group.traverse((obj: any) => {
-        if (
-          obj.name &&
-          obj.name !== "star-mesh" &&
-          obj.name !== "star-light" &&
-          obj.visible &&
-          obj.traversable !== false
-        ) {
-          this.visibleObjects.push(obj);
-        }
-      });
-      this.currentObjectIndex = -1; // Reset index
-    }
-  }
-
+  
   /**
    * Traverse to the next visible object and focus camera
    */
