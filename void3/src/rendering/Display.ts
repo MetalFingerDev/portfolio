@@ -3,6 +3,7 @@ import { WebGLRenderer, Scene, Camera } from "three";
 export interface DisplayOptions {
   antialias?: boolean;
   alpha?: boolean;
+  logarithmicDepthBuffer?: boolean;
 }
 
 export default class Display {
@@ -13,11 +14,10 @@ export default class Display {
       canvas,
       antialias: options.antialias,
       alpha: options.alpha,
+      logarithmicDepthBuffer: options.logarithmicDepthBuffer,
     });
 
-    // Improve quality and lighting for large-scale scenes
     this.renderer.setPixelRatio(window.devicePixelRatio || 1);
-    // Ensure lights and color spaces behave physically for materials
     (this.renderer as any).physicallyCorrectLights = true;
   }
 

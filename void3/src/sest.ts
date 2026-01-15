@@ -1,8 +1,8 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import { SolarSystem } from "./SolarSystem";
-import { MilkyWay } from "./MilkyWay";
+import { SolarSystem } from "./regions/SolarSystem";
+import { MilkyWay } from "./regions/MilkyWay";
 
 const canvas = document.querySelector("#app") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("Canvas not found");

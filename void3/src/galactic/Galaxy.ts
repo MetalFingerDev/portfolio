@@ -1,7 +1,7 @@
-import { LocalFluff } from "./LocalFluff";
-import { Region } from "./Region";
+import { LocalFluff } from "../LocalFluff";
+import { Region } from "../Region";
 import { Star } from "./Star";
-import { SolarSystem } from "./SolarSystem"; // optional solar to size galaxy
+import { SolarSystem } from "../SolarSystem"; // optional solar to size galaxy
 
 export class Galaxy extends Region {
   public sun: Star;

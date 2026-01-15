@@ -16,7 +16,6 @@ export class LocalFluff extends Region implements CelestialBody {
       const color = new THREE.Color().setHSL(Math.random(), 0.4, 0.8);
       const star = new Star(0.5, size, color.getHex(), false);
 
-      
       const rVal =
         Math.random() *
           (Math.pow(outerBoundary, 3) - Math.pow(innerBoundary, 3)) +

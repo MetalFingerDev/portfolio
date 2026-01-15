@@ -1,7 +1,7 @@
 import { LocalFluff } from "./LocalFluff";
 import { Region } from "./Region";
-import { Star } from "./Star";
-import { Planet } from "./Planet";
+import { Star } from "../stellar/Star";
+import { Planet } from "../planetary/Planet";
 
 export class SolarSystem extends Region {
   public sun: Star;

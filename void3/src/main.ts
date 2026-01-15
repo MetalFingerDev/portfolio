@@ -1,9 +1,9 @@
 import "./style.css";
-import Display from "./rendering/index";
+import Display from "./rendering/Display";
 import Visualization from "./visualization";
 import Overlay from "./ui/overlay";
-import { Ship, InputHandler } from "./controls";
-import Space from "./scenes";
+import { Ship, InputHandler } from "./controls/Ship";
+import Space from "./scenes/Space";
 import SystemManager from "./systems";
 import registerer from "./regions";
 

@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { Region, type CelestialBody } from "./Region";
-import { LocalFluff } from "./LocalFluff";
+import { Region, type CelestialBody } from "./regions/Region";
+import { LocalFluff } from "./regions/LocalFluff";
 import { MilkyWay } from "./MilkyWay";
 
 function createRadialTexture(color: number, size = 256): THREE.Texture {
