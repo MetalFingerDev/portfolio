@@ -1,12 +1,12 @@
 # rendering
 
-Purpose: Rendering utils, renderer setup, post-processing, and render-loop components.
+Purpose: Renderer setup, render loop helpers, and post-processing utilities.
 
 ---
 
-## Overview ✅
+## Overview
 
-This folder holds rendering setup and utilities used to drive the render loop, post-processing, and renderer configuration for Void3.
+Utilities to initialize and manage the Three.js renderer and post-process passes.
 
 ## Contents
 

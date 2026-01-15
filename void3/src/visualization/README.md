@@ -1,12 +1,12 @@
 # visualization
 
-Purpose: High-level visualization entry points, scene setup, cameras, and debug helpers.
+Purpose: High-level visualization helpers and entrypoints.
 
 ---
 
-## Overview ✅
+## Overview
 
-High-level visualization utilities for rendering scenes, managing camera traversal, and providing debug helpers for the Void3 simulation.
+Utilities and components that help assemble visual representations and connect data/models to rendering.
 
 ## Features 🎨
 

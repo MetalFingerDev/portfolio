@@ -1,12 +1,12 @@
 # regions
 
-Purpose: Region management utilities, LOD helpers, and spatial partitioning helpers.
+Purpose: Region management, LOD helpers, and spatial partitioning utilities.
 
 ---
 
-## Overview ✅
+## Overview
 
-Spatial partitioning utilities, level-of-detail helpers, and region managers used to optimize scene content and updates. Implements complete solar system and interstellar space regions with hierarchical entity relationships.
+Provides region registration and utilities for loading/managing systems like the Solar System and Interstellar Space.
 
 ## Features 🌌
 

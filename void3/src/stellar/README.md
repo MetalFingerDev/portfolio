@@ -1,12 +1,12 @@
 # stellar
 
-Purpose: Code and models for stars and stellar phenomena (e.g., Sun, star properties, spectrums, stellar evolution).
+Purpose: Star models, lighting helpers, and utilities for stellar phenomena.
 
 ---
 
-## Overview ✅
+## Overview
 
-Models and utilities for representing stars, spectrums, and stellar phenomena. Features realistic star rendering with lighting and visual effects.
+Star objects, helpers for luminosity, and utilities to attach planetary systems.
 
 ## Features ⭐
 

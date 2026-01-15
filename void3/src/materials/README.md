@@ -1,12 +1,12 @@
 # materials
 
-Purpose: Material definitions, presets, and material factories.
+Purpose: Material presets, factories, and helpers to create consistent materials.
 
 ---
 
-## Overview ✅
+## Overview
 
-This folder contains materials, shader presets, and factories to create consistent visual materials used across the project.
+Material factories and presets used across scenes to standardize visual appearance.
 
 ## Usage 💡
 

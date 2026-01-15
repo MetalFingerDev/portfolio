@@ -1,12 +1,12 @@
 # factories
 
-Purpose: Factory functions and proxies to create entities (celestial bodies, scenes, components).
+Purpose: Factory helpers to centralize object creation (entities, scenes, components).
 
 ---
 
-## Overview ✅
+## Overview
 
-Factory helpers and proxies that encapsulate creation logic for complex entities.
+Use factories to standardize and encapsulate creation logic for complex objects.
 
 ## Usage 💡
 

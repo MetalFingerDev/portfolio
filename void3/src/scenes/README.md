@@ -1,12 +1,12 @@
 # scenes
 
-Purpose: Scene compositions and pre-built scene modules (e.g., `solarScene`, `galacticScene`).
+Purpose: Pre-built scenes and scene composition helpers.
 
 ---
 
-## Overview ✅
+## Overview
 
-Contains pre-built scenes and helpers to construct complex visual compositions used by the app.
+Scene modules to assemble visual compositions (solar system, galactic view, etc.).
 
 ## Usage 💡
 

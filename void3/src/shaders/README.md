@@ -1,12 +1,12 @@
 # shaders
 
-Purpose: GLSL shader sources, shader utilities and includes.
+Purpose: GLSL sources and shader utilities.
 
 ---
 
-## Overview ✅
+## Overview
 
-This folder contains shader sources and utilities to build and include shader code into the rendering pipeline.
+Modular shader files and small utilities to compile and reuse GLSL code across materials.
 
 ## Usage 💡
 

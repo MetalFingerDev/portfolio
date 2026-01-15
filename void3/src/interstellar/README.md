@@ -1,12 +1,12 @@
 # interstellar
 
-Purpose: Interstellar medium models, local fluff, and low-density space calculations.
+Purpose: Interstellar space system and procedural starfield generation.
 
 ---
 
-## Overview ✅
+## Overview
 
-Models and systems for representing interstellar space, including procedural starfields and vast cosmic environments, integrated with the broader simulation framework.
+Procedural starfield system used for large-scale scenes and interstellar exploration.
 
 ## Features 🌌
 

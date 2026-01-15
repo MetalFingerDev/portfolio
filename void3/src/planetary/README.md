@@ -1,12 +1,12 @@
 # planetary
 
-Purpose: Planet and moon models, orbital mechanics, and planetary systems logic.
+Purpose: Planet and moon models, orbital mechanics, and planetary system helpers.
 
 ---
 
-## Overview ✅
+## Overview
 
-Modules for modeling planets, moons, and orbital systems used by the Void3 simulation and visualization layers. Features a complete config-driven solar system with all 9 planets, integrated hierarchically with star systems.
+Models for planets and moons, including `Planet` classes and configuration interfaces. Features a complete config-driven solar system with all 9 planets, integrated hierarchically with star systems.
 
 ## Features 🌍
 

@@ -1,12 +1,12 @@
 # tests
 
-Purpose: Unit and integration tests (simulation, physics, and rendering smoke tests).
+Purpose: Unit and integration tests for simulation, physics, and rendering.
 
 ---
 
-## Overview ✅
+## Overview
 
-Tests that validate simulation, physics, and rendering smoke cases. Keep tests focused, small, and deterministic.
+Contains test suites and utilities. Run tests via `pnpm test`.
 
 ## Usage 💡
 

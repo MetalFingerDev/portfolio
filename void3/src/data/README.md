@@ -1,12 +1,12 @@
 # data
 
-Purpose: External data, textures, astronomical catalogs, and static assets configuration.
+Purpose: Data fixtures, parsers, and static asset helpers (textures, catalogs).
 
 ---
 
-## Overview ✅
+## Overview
 
-Fixtures, parsers, and helpers for external datasets, catalogs, and static assets used by the project.
+Document data formats and include example fixtures for easy testing.
 
 ## Usage 💡
 

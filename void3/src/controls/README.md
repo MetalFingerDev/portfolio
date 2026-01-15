@@ -1,12 +1,12 @@
 # controls
 
-Purpose: Input and camera control code, e.g., orbit controls, flight controls.
+Purpose: Input and camera control modules (flight controls, orbit controls, and input mapping).
 
 ---
 
-## Overview ✅
+## Overview
 
-Input and camera control modules, including flight/orbit controls and input mapping utilities. Features ship-based navigation, keyboard shortcuts for system control, and input handling abstraction.
+Provides ship and camera controls, an `InputHandler` for keyboard shortcuts, and helpers to integrate with the `SystemManager`.
 
 ## Features 🎮
 

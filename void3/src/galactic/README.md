@@ -1,12 +1,12 @@
 # galactic
 
-Purpose: Galaxy-scale systems, Milky Way models, Laniakea-level structures, and galaxy mapping utilities.
+Purpose: Galaxy-scale systems and helpers (Milky Way models, mapping helpers).
 
 ---
 
-## Overview ✅
+## Overview
 
-This folder holds galaxy-scale systems and utilities used by the Void3 visualization engine. It contains data models and helpers for large-scale structure representation.
+Contains types and systems for representing galaxy-scale structures and visualizations. It contains data models and helpers for large-scale structure representation.
 
 ## Contents
 
