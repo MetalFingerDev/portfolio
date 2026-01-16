@@ -11,7 +11,7 @@ class DistantGalaxy extends Region implements CelestialBody {
   public mesh: THREE.Mesh;
 
   constructor(radius: number, thickness: number, color: number) {
-    super();
+    super({ radius });
     this.name = "DistantGalaxy";
 
     const geometry = new THREE.CylinderGeometry(radius, radius, thickness, 32);
@@ -44,13 +44,13 @@ class Andromeda extends Region implements CelestialBody {
   public mesh: THREE.Mesh;
 
   constructor() {
-    super();
+    const thickness = 18000;
+    const radius = 320000;
+    super({ radius });
     this.name = "Andromeda";
 
     // --- HARDCODED DIMENSIONS ---
     // Slightly smaller than Milky Way (Radius 400k -> 320k)
-    const thickness = 18000;
-    const radius = 320000;
 
     // 1. Create Geometry (Cylinder)
     const geometry = new THREE.CylinderGeometry(radius, radius, thickness, 64);
@@ -101,7 +101,8 @@ export class LocalGroup extends Region implements CelestialBody {
   public andromeda: Andromeda;
 
   constructor() {
-    super();
+    // Choose a large radius to comfortably include placeholder galaxies
+    super({ radius: 100_000_000 });
     this.name = "LocalGroup";
 
     // MilkyWay is no longer added here; add it to the scene separately if desired.

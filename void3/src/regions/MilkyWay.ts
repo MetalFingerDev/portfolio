@@ -6,11 +6,11 @@ export class MilkyWay extends Region implements CelestialBody {
   public mesh: THREE.Mesh;
 
   constructor() {
-    super();
-    this.name = "MilkyWay";
-
     const thickness = 20000;
     const radius = 400000;
+    super({ radius });
+
+    this.name = "MilkyWay";
 
     const geometry = new THREE.CylinderGeometry(radius, radius, thickness, 64);
 
@@ -57,8 +57,7 @@ export class MilkyWay extends Region implements CelestialBody {
     this.children.forEach((c: any) => {
       try {
         if (c && typeof c.setDetail === "function") c.setDetail(isHighDetail);
-      } catch (e) {
-      }
+      } catch (e) {}
     });
   }
 

@@ -1,4 +1,5 @@
 import { Region } from "./Region";
+import { regionManager } from "./RegionManager";
 import { Star } from "../stellar/Star";
 import { Planet } from "../planetary/Planet";
 
@@ -66,9 +67,25 @@ export class SolarSystem extends Region {
 
       const star = new Star(1.5, 50, 0xffcc00);
       star.position.set(x, height, z);
+      // Background stars are low-detail by default
+      try {
+        star.setDetail(false);
+      } catch (e) {}
       this.add(star);
 
       this.bodies.push(star);
+    }
+  }
+
+  public setDetail(isHighDetail: boolean): void {
+    // propagate to bodies
+    super.setDetail(isHighDetail);
+
+    // Log detail changes when manager logging enabled
+    if (regionManager.log) {
+      console.info(
+        `[SolarSystem] setDetail -> ${isHighDetail ? "HIGH" : "LOW"}`
+      );
     }
   }
 

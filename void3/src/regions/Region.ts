@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { regionManager } from "./RegionManager";
 
 export const REGION_SCALE = 2;
 
@@ -24,6 +25,13 @@ export class Region extends THREE.Group {
     this.cfg = cfg || {};
     // Default radius can be overwritten by child classes (e.g. SolarSystem)
     this.radius = cfg?.radius || 1000;
+
+    // Auto-register with the global region manager
+    try {
+      regionManager.register(this);
+    } catch (e) {
+      // defensive: allow usage without manager in tests
+    }
   }
 
   public setCamera(camera: THREE.PerspectiveCamera): void {
@@ -42,15 +50,27 @@ export class Region extends THREE.Group {
     }
   }
 
+  /**
+   * Test whether the camera is inside this region (optionally with hysteresis).
+   */
+  public isCameraInside(camera: THREE.Camera, hysteresis: number = 1): boolean {
+    const myPos = new THREE.Vector3();
+    this.getWorldPosition(myPos);
+
+    const camPos = new THREE.Vector3();
+    camera.getWorldPosition(camPos);
+
+    const distSq = myPos.distanceToSquared(camPos);
+    const thresholdSq = this.radius * this.radius * hysteresis * hysteresis;
+    return distSq < thresholdSq;
+  }
+
   public update(delta: number): void {
     // prevent re-entrancy / infinite recursion
     if (this._updating) return;
     this._updating = true;
     try {
-      // 1. Perform the Proximity Check
-      if (this.camera) this.checkRegionEntry();
-
-      // 2. Standard Update Propagation (use shallow copy to avoid mutations)
+      // Propagate body updates only; LOD decisions are handled centrally by RegionManager
       for (const b of this.bodies.slice()) {
         if (b && typeof b.update === "function") b.update(delta);
       }
@@ -59,32 +79,16 @@ export class Region extends THREE.Group {
     }
   }
 
-  /**
-   * Checks if the camera is inside the Region's radius.
-   * Propagates effect to all children via setDetail().
-   */
-  private checkRegionEntry(): void {
-    if (!this.camera) return;
-
-    // Get world positions to ensure accuracy regardless of scene graph nesting
-    const myPos = new THREE.Vector3();
-    this.getWorldPosition(myPos);
-
-    const camPos = this.camera.position; // Assuming camera is in world space
-    const dist = myPos.distanceTo(camPos);
-
-    // Add a small buffer (hysteresis) to prevent flickering at the boundary
-    const threshold = this.radius * (this.userData.detailIsHigh ? 1.1 : 1.0);
-
-    const isInside = dist < threshold;
-    this.setDetail(isInside);
-  }
-
   public destroy(): void {
     this.bodies.forEach((b) => {
       if (b && typeof b.destroy === "function") b.destroy();
     });
     this.bodies = [];
+    try {
+      regionManager.unregister(this);
+    } catch (e) {
+      // ignore
+    }
     if (this.parent) this.parent.remove(this);
   }
 }

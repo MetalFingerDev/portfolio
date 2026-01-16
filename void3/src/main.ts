@@ -5,8 +5,10 @@ import Display from "./rendering/Display";
 import Ship from "./controls/Ship";
 import Space from "./scenes/Space";
 
+import { regionManager } from "./regions/RegionManager";
 import { LocalGroup } from "./regions/LocalGroup";
 import { MilkyWay } from "./regions/MilkyWay";
+import { SolarSystem } from "./regions/SolarSystem";
 // --- Setup ---
 
 const canvas = document.querySelector("#app") as HTMLCanvasElement | null;
@@ -19,27 +21,30 @@ const display = new Display(canvas, {
 display.setSize(window.innerWidth, window.innerHeight);
 
 const ship = new Ship(canvas);
-ship.camera.position.set(0, 20, 80);
+ship.camera.position.set(0, 20000, 80000);
 ship.controls.enableDamping = true;
 
 const space = new Space({
   background: 0x2e004f,
 });
 
+const solarSystem = new SolarSystem();
+space.add(solarSystem);
 const localGroup = new LocalGroup();
 space.add(localGroup);
 const milkyWay = new MilkyWay();
 space.add(milkyWay);
 
-localGroup.setCamera(ship.camera);
-localGroup.setDetail(true);
+// Enable LOD logging for development (set to false to silence)
+regionManager.log = true;
+regionManager.verbose = false;
 
 const clock = new THREE.Clock();
 function animate() {
   const delta = clock.getDelta();
   try {
-    // 4. Update the regions
-    localGroup.update(delta);
+    // central manager decides which region is high-detail, and updates all regions
+    regionManager.update(ship.camera, delta);
 
     ship.controls.update();
   } catch (e) {
