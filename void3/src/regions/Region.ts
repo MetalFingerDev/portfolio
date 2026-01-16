@@ -13,6 +13,8 @@ export class Region extends THREE.Group {
   public bodies: CelestialBody[] = [];
   public camera?: THREE.PerspectiveCamera;
   public cfg: any;
+  // guard to prevent re-entrant updates (infinite recursion)
+  private _updating = false;
 
   // New property to define the active "High Detail" zone
   public radius: number = 0;
@@ -34,23 +36,27 @@ export class Region extends THREE.Group {
     if (this.userData.detailIsHigh === isHighDetail) return;
 
     this.userData.detailIsHigh = !!isHighDetail;
-    this.bodies.forEach((b) => {
-      if (b && typeof b.setDetail === "function") {
-        b.setDetail(isHighDetail);
-      }
-    });
+    // iterate over a shallow copy to avoid concurrent modification
+    for (const b of this.bodies.slice()) {
+      if (b && typeof b.setDetail === "function") b.setDetail(isHighDetail);
+    }
   }
 
   public update(delta: number): void {
-    // 1. Perform the Proximity Check
-    if (this.camera) {
-      this.checkRegionEntry();
-    }
+    // prevent re-entrancy / infinite recursion
+    if (this._updating) return;
+    this._updating = true;
+    try {
+      // 1. Perform the Proximity Check
+      if (this.camera) this.checkRegionEntry();
 
-    // 2. Standard Update Propogation
-    this.bodies.forEach((b) => {
-      if (b && typeof b.update === "function") b.update(delta);
-    });
+      // 2. Standard Update Propagation (use shallow copy to avoid mutations)
+      for (const b of this.bodies.slice()) {
+        if (b && typeof b.update === "function") b.update(delta);
+      }
+    } finally {
+      this._updating = false;
+    }
   }
 
   /**
