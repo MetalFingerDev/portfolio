@@ -7,6 +7,7 @@ export class Star extends THREE.Group implements CelestialBody {
   private light?: THREE.PointLight;
   private mesh?: THREE.Mesh;
   private point: THREE.Points;
+  private lod: THREE.LOD;
 
   private config: {
     intensity: number;
@@ -26,6 +27,10 @@ export class Star extends THREE.Group implements CelestialBody {
 
     this.config = { intensity, radius, color, emission };
 
+    // THREE.LOD instance to manage geometry detail levels
+    this.lod = new THREE.LOD();
+    this.add(this.lod);
+
     // 1. Low Detail: Point Geometry (uses star color)
     const pointGeom = new THREE.BufferGeometry();
     pointGeom.setAttribute(
@@ -42,32 +47,28 @@ export class Star extends THREE.Group implements CelestialBody {
     });
     this.point = new THREE.Points(pointGeom, pointMat);
     this.point.name = "star-point";
-    this.add(this.point);
 
+    // Add low-detail level to LOD (visible when far enough away)
+    const lowDetailDistance = Math.max(100, radius * 20);
+    this.lod.addLevel(this.point, lowDetailDistance);
+
+    // Keep compatibility: ensure high detail assets if someone requests it
     this.setDetail(true);
   }
 
   /**
-   * Toggles between Point geometry (low detail)
-   * and Icosahedron geometry (high detail).
+   * Compatibility shim: requesting high detail will ensure the high-detail assets
+   * exist; visibility is handled by THREE.LOD, not manually toggled here.
    */
   public setDetail(isHighDetail: boolean): void {
     if (isHighDetail) {
-      // Show High Detail
-      this.point.visible = false;
       this.ensureHighDetailAssets();
-      if (this.mesh) this.mesh.visible = true;
-      if (this.light) this.light.visible = true;
-    } else {
-      // Show Low Detail (Points)
-      this.point.visible = true;
-      if (this.mesh) this.mesh.visible = false;
-      if (this.light) this.light.visible = false;
     }
+    // No manual visibility toggles; LOD decides which level to show.
   }
 
   /**
-   * Lazily creates the high-detail Icosahedron mesh and light.
+   * Lazily creates the high-detail Icosahedron mesh and light and registers them with LOD.
    */
   private ensureHighDetailAssets(): void {
     if (this.mesh) return;
@@ -94,17 +95,17 @@ export class Star extends THREE.Group implements CelestialBody {
     this.mesh.castShadow = false;
     this.mesh.receiveShadow = false;
 
-    this.add(this.mesh);
-
+    // Attach light as a child of the mesh so it follows the high-detail level
     if (emission) {
-      // Point light with large intensity and infinite range (distance = 0)
       this.light = new THREE.PointLight(color, intensity, 0);
       this.light.castShadow = true;
-      // Reasonable shadow settings for quality
       this.light.shadow.mapSize.set(1024, 1024);
       this.light.shadow.bias = -0.001;
-      this.add(this.light);
+      this.mesh.add(this.light);
     }
+
+    // Register the mesh as the high-detail level at distance 0 (closest)
+    this.lod.addLevel(this.mesh, 0);
   }
 
   update(_delta: number): void {}

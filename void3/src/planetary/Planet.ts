@@ -8,6 +8,7 @@ import { type CelestialBody } from "../regions/Region";
 export class Planet extends THREE.Group implements CelestialBody {
   private mesh?: THREE.Mesh;
   private point: THREE.Points;
+  private lod: THREE.LOD;
   private orbitAngle: number = Math.random() * Math.PI * 2; // Random start position
 
   private config: {
@@ -37,6 +38,10 @@ export class Planet extends THREE.Group implements CelestialBody {
       orbitSpeed: orbitSpeed ?? 0.2 + Math.random() * 0.5, // Use provided orbitSpeed if given
     };
 
+    // LOD instance to manage levels
+    this.lod = new THREE.LOD();
+    this.add(this.lod);
+
     // 1. Low Detail: Point Geometry
     // We use a single point at the origin of the group
     const pointGeom = new THREE.BufferGeometry();
@@ -56,31 +61,28 @@ export class Planet extends THREE.Group implements CelestialBody {
 
     this.point = new THREE.Points(pointGeom, pointMat);
     this.point.name = `${this.name}-point`;
-    this.add(this.point);
+
+    // Register low-detail level; use a reasonable distance threshold based on size
+    const lowDetailDistance = Math.max(50, size * 30);
+    this.lod.addLevel(this.point, lowDetailDistance);
 
     // Position the planet at its initial orbit placement using configured radius
     const x = Math.cos(this.orbitAngle) * this.config.orbitRadius;
     const z = Math.sin(this.orbitAngle) * this.config.orbitRadius;
     this.position.set(x, 0, z);
 
-    // Ensure high-detail mesh exists and show high-detail by default so planets are visible
+    // Ensure high-detail mesh exists and keep compatibility
     this.ensureHighDetailAssets();
     this.setDetail(true);
   }
 
   /**
-   * Toggles between the Point (low detail) and the Icosahedron (high detail)
+   * Compatibility shim: requesting high detail will ensure the high-detail assets
+   * exist; actual visibility is managed by THREE.LOD.
    */
   public setDetail(isHighDetail: boolean): void {
     if (isHighDetail) {
-      // Show High Detail Mesh
-      this.point.visible = false;
       this.ensureHighDetailAssets();
-      if (this.mesh) this.mesh.visible = true;
-    } else {
-      // Show Low Detail Point
-      this.point.visible = true;
-      if (this.mesh) this.mesh.visible = false;
     }
   }
 
@@ -109,7 +111,8 @@ export class Planet extends THREE.Group implements CelestialBody {
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
 
-    this.add(this.mesh);
+    // Register the high-detail level at distance 0 (closest)
+    this.lod.addLevel(this.mesh, 0);
   }
 
   update(delta: number): void {
