@@ -1,7 +1,10 @@
 import * as THREE from "three";
-import { regionManager } from "./RegionManager";
 
-export const REGION_SCALE = 2;
+// 1. Define the custom event map
+export interface RegionEventMap extends THREE.Object3DEventMap {
+  enter: { type: "enter" };
+  exit: { type: "exit" };
+}
 
 export interface CelestialBody {
   setDetail(isHighDetail: boolean): void;
@@ -10,85 +13,83 @@ export interface CelestialBody {
   group?: THREE.Group | THREE.Object3D;
 }
 
-export class Region extends THREE.Group {
+/**
+ * A localized coordinate space.
+ * Follows the "Tell, Don't Ask" principle for lifecycle management.
+ */
+export class Region extends THREE.Group<RegionEventMap> {
   public bodies: CelestialBody[] = [];
-  public camera?: THREE.PerspectiveCamera;
   public cfg: any;
-  // guard to prevent re-entrant updates (infinite recursion)
-  private _updating = false;
+  public radius: number;
 
-  // New property to define the active "High Detail" zone
-  public radius: number = 0;
+  // LOD State tracking
+  public isHighDetail: boolean = false;
+  private _isUpdating = false;
 
   constructor(cfg?: any) {
     super();
     this.cfg = cfg || {};
-    // Default radius can be overwritten by child classes (e.g. SolarSystem)
     this.radius = cfg?.radius || 1000;
+    this.name = cfg?.name || "Unnamed Region";
+  }
 
-    // Auto-register with the global region manager
+  /**
+   * Updates all child bodies.
+   * Guarded against re-entrancy to prevent stack overflows.
+   */
+  public update(delta: number): void {
+    if (this._isUpdating) return;
+    this._isUpdating = true;
+
     try {
-      regionManager.register(this);
-    } catch (e) {
-      // defensive: allow usage without manager in tests
-    }
-  }
-
-  public setCamera(camera: THREE.PerspectiveCamera): void {
-    this.camera = camera;
-    this.userData.camera = camera;
-  }
-
-  public setDetail(isHighDetail: boolean): void {
-    // Avoid redundant updates if state hasn't changed
-    if (this.userData.detailIsHigh === isHighDetail) return;
-
-    this.userData.detailIsHigh = !!isHighDetail;
-    // iterate over a shallow copy to avoid concurrent modification
-    for (const b of this.bodies.slice()) {
-      if (b && typeof b.setDetail === "function") b.setDetail(isHighDetail);
+      for (const body of this.bodies) {
+        // Safety: Ensure we don't call update on ourselves if accidentally added to bodies
+        if (body !== (this as any) && typeof body.update === "function") {
+          body.update(delta);
+        }
+      }
+    } finally {
+      this._isUpdating = false;
     }
   }
 
   /**
-   * Test whether the camera is inside this region (optionally with hysteresis).
+   * Sets the Level of Detail for this region and all its bodies.
    */
-  public isCameraInside(camera: THREE.Camera, hysteresis: number = 1): boolean {
-    const myPos = new THREE.Vector3();
-    this.getWorldPosition(myPos);
+  public setDetail(high: boolean): void {
+    if (this.isHighDetail === high) return;
+    this.isHighDetail = high;
 
-    const camPos = new THREE.Vector3();
-    camera.getWorldPosition(camPos);
-
-    const distSq = myPos.distanceToSquared(camPos);
-    const thresholdSq = this.radius * this.radius * hysteresis * hysteresis;
-    return distSq < thresholdSq;
-  }
-
-  public update(delta: number): void {
-    // prevent re-entrancy / infinite recursion
-    if (this._updating) return;
-    this._updating = true;
-    try {
-      // Propagate body updates only; LOD decisions are handled centrally by RegionManager
-      for (const b of this.bodies.slice()) {
-        if (b && typeof b.update === "function") b.update(delta);
+    for (const body of this.bodies) {
+      if (typeof body.setDetail === "function") {
+        body.setDetail(high);
       }
-    } finally {
-      this._updating = false;
     }
   }
 
+  /**
+   * Comprehensive cleanup of GPU resources.
+   */
   public destroy(): void {
-    this.bodies.forEach((b) => {
-      if (b && typeof b.destroy === "function") b.destroy();
-    });
+    // 1. Destroy all celestial bodies logic
+    this.bodies.forEach((b) => b.destroy?.());
     this.bodies = [];
-    try {
-      regionManager.unregister(this);
-    } catch (e) {
-      // ignore
+
+    // 2. Recursively dispose of Three.js geometries and materials
+    this.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        object.geometry?.dispose();
+        if (Array.isArray(object.material)) {
+          object.material.forEach((m) => m.dispose());
+        } else {
+          object.material?.dispose();
+        }
+      }
+    });
+
+    // 3. Remove from scene graph
+    if (this.parent) {
+      this.parent.remove(this);
     }
-    if (this.parent) this.parent.remove(this);
   }
 }

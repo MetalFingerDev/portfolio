@@ -37,13 +37,11 @@ space.add(milkyWay);
 
 // Enable LOD logging for development (set to false to silence)
 regionManager.log = true;
-regionManager.verbose = false;
 
 const clock = new THREE.Clock();
 function animate() {
   const delta = clock.getDelta();
   try {
-    // central manager decides which region is high-detail, and updates all regions
     regionManager.update(ship.camera, delta);
 
     ship.controls.update();

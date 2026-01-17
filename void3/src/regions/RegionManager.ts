@@ -1,107 +1,84 @@
 import * as THREE from "three";
+import { Region } from "./Region";
 
 /**
- * RegionManager selects a single "active" region (smallest containing region)
- * and sets only that region to high detail. It also calls `update(delta)` on
- * all registered regions to keep animations ticking.
+ * Handles LOD transitions and the "Hyperspace" coordinate shifts.
  */
 export class RegionManager {
-  private regions = new Set<any>();
-  private current: any | null = null;
+  private regions = new Set<Region>();
+  public activeRegion: Region | null = null;
+
+  // Configuration
   public hysteresis = 1.1;
+  public log = true;
 
-  // Enable console logs for LOD events and debugging
-  public log: boolean = true; // brief info-level logs (enter/exit)
-  public verbose: boolean = false; // frame-level debug logs
-
-  register(region: any) {
+  public register(region: Region): void {
     this.regions.add(region);
   }
 
-  unregister(region: any) {
+  public unregister(region: Region): void {
     this.regions.delete(region);
-    if (this.current === region) this.current = null;
+    if (this.activeRegion === region) this.activeRegion = null;
   }
 
-  update(camera: THREE.Camera | undefined, delta: number) {
-    if (!camera) return;
-
+  /**
+   * Evaluates camera position and updates LOD/Animations.
+   */
+  public update(camera: THREE.Camera, delta: number): void {
     const camPos = new THREE.Vector3();
     camera.getWorldPosition(camPos);
 
-    let candidate: any | null = null;
+    let bestCandidate: Region | null = null;
 
-    for (const r of this.regions) {
-      const hyster = r === this.current ? this.hysteresis : 1.0;
+    for (const region of this.regions) {
+      // 1. Calculate distance to region center
+      const regionPos = new THREE.Vector3();
+      region.getWorldPosition(regionPos);
 
-      // Precompute positions and distances for logging and fallback
-      const pos = new THREE.Vector3();
-      r.getWorldPosition(pos);
-      const dsq = pos.distanceToSquared(camPos);
-      const thresholdSq = r.radius * r.radius * hyster * hyster;
+      const distSq = regionPos.distanceToSquared(camPos);
 
-      if (this.verbose) {
-        const dist = Math.sqrt(dsq);
-        const threshold = Math.sqrt(thresholdSq);
-        console.debug(
-          `[RegionManager] consider ${r.name || "(anon)"} dist=${dist.toFixed(
-            1
-          )} threshold=${threshold.toFixed(1)} radius=${r.radius}`
-        );
-      }
+      // 2. Apply Hysteresis: If already inside, use a larger boundary to prevent flickering
+      const isCurrentlyActive = region === this.activeRegion;
+      const buffer = isCurrentlyActive ? this.hysteresis : 1.0;
+      const thresholdSq = Math.pow(region.radius * buffer, 2);
 
-      let inside = false;
-      if (typeof r.isCameraInside === "function") {
-        inside = r.isCameraInside(camera, hyster);
-      } else {
-        inside = dsq < thresholdSq;
-      }
-
-      if (inside) {
-        if (!candidate || r.radius < candidate.radius) candidate = r;
+      // 3. Nested Logic: The "smallest" containing region becomes the active candidate
+      if (distSq < thresholdSq) {
+        if (!bestCandidate || region.radius < bestCandidate.radius) {
+          bestCandidate = region;
+        }
       }
     }
 
-    if (candidate !== this.current) {
-      if (this.current) {
-        try {
-          this.current.setDetail(false);
-          if (this.log)
-            console.info(
-              `[RegionManager] setDetail OFF -> ${
-                this.current.name || "(anon)"
-              } (radius=${this.current.radius})`
-            );
-        } catch {}
-        this.current.dispatchEvent?.({ type: "exit" });
-      }
-      if (candidate) {
-        try {
-          candidate.setDetail(true);
-          if (this.log)
-            console.info(
-              `[RegionManager] setDetail ON  -> ${
-                candidate.name || "(anon)"
-              } (radius=${candidate.radius})`
-            );
-        } catch {}
-        candidate.dispatchEvent?.({ type: "enter" });
-      }
+    // 4. Handle Transitions
+    if (bestCandidate !== this.activeRegion) {
+      this.transitionTo(bestCandidate);
+    }
+
+    // 5. Update all regions (animations, orbits, etc.)
+    for (const region of this.regions) {
+      region.update(delta);
+    }
+  }
+
+  private transitionTo(next: Region | null): void {
+    if (this.activeRegion) {
+      this.activeRegion.setDetail(false);
+      this.activeRegion.dispatchEvent({ type: "exit" } as any);
+      if (this.log)
+        console.info(`[RegionManager] Exiting: ${this.activeRegion.name}`);
+    }
+
+    if (next) {
+      next.setDetail(true);
+      next.dispatchEvent({ type: "enter" } as any);
       if (this.log)
         console.info(
-          `[RegionManager] active region -> ${candidate?.name || "none"}`
+          `[RegionManager] Entering: ${next.name} (Radius: ${next.radius})`
         );
-      this.current = candidate;
     }
 
-    // Call update on all regions (safe-guard per region)
-    for (const r of this.regions) {
-      try {
-        if (typeof r.update === "function") r.update(delta);
-      } catch (err) {
-        console.error("Region update error", err);
-      }
-    }
+    this.activeRegion = next;
   }
 }
 

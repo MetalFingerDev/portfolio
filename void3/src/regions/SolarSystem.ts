@@ -9,9 +9,8 @@ export class SolarSystem extends Region {
 
   constructor(cfg?: any) {
     // 1. Define Radius:
-    // The furthest planet (Neptune) is roughly at distance 100.
-    // Multiplied by REGION_SCALE (2) = 200.
-    // We set radius to 300 to create a comfortable "High Detail" zone around the system.
+    // The furthest planet (Neptune) is roughly at distance ~100.
+    // We set a very large radius to ensure a comfortable "High Detail" zone around the system.
     super({ ...cfg, radius: 2000 });
 
     this.name = "solar-system";
