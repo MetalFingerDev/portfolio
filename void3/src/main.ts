@@ -5,14 +5,16 @@ import Display from "./rendering/Display";
 import Ship from "./controls/Ship";
 import Space from "./scenes/Space";
 
-import { regionManager } from "./regions/RegionManager";
-import { LocalGroup } from "./regions/LocalGroup";
-import { MilkyWay } from "./regions/MilkyWay";
-import { SolarSystem } from "./regions/SolarSystem";
+import { RegionManager }  from "./void/regions/RegionManager";
+import { LocalGroup } from "./void/regions/LocalGroup";
+import { MilkyWay } from "./void/regions/MilkyWay";
+import { SolarSystem } from "./void/regions/SolarSystem";
 // --- Setup ---
 
 const canvas = document.querySelector("#app") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("Canvas not found");
+
+const regionManager = new RegionManager;
 
 const display = new Display(canvas, {
   antialias: true,

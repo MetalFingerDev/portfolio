@@ -1,7 +1,5 @@
 import * as THREE from "three";
 import { Region, type CelestialBody } from "./Region";
-// REMOVE: import { Galaxy } from "../galactic/Galaxy"; -> We will use a local class instead
-// MilkyWay is managed externally (not included inside LocalGroup)
 
 /**
  * Helper class for generic distant galaxies
@@ -26,7 +24,6 @@ class DistantGalaxy extends Region implements CelestialBody {
 
     this.mesh = new THREE.Mesh(geometry, material);
     this.add(this.mesh);
-    this.bodies.push(this);
   }
 
   destroy() {
@@ -69,19 +66,6 @@ class Andromeda extends Region implements CelestialBody {
     this.add(this.mesh);
 
     // NOTE: Andromeda no longer populates with stars (handled by MilkyWay density approach)
-
-    this.bodies.push(this);
-  }
-
-  setDetail(isHighDetail: boolean): void {
-    // Propagate detail settings to children if they support it
-    this.children.forEach((c: any) => {
-      try {
-        if (c && typeof c.setDetail === "function") c.setDetail(isHighDetail);
-      } catch (e) {
-        /* defensive */
-      }
-    });
   }
 
   update(delta: number): void {
@@ -129,7 +113,6 @@ export class LocalGroup extends Region implements CelestialBody {
       const thickness = Math.max(8000, radius * 0.06);
       const color = colorPalette[i % colorPalette.length];
 
-      // FIX: Use DistantGalaxy instead of the imported Galaxy class
       const g = new DistantGalaxy(radius, thickness, color);
       g.name = `Galaxy-${i}`;
 
@@ -154,11 +137,6 @@ export class LocalGroup extends Region implements CelestialBody {
       this.add(g);
       this.bodies.push(g);
     }
-  }
-
-  setDetail(isHighDetail: boolean): void {
-    // Pass detail level down to galaxies
-    super.setDetail(isHighDetail);
   }
 
   update(delta: number): void {

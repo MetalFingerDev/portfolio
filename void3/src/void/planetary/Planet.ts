@@ -9,6 +9,7 @@ export class Planet extends THREE.Group implements CelestialBody {
   private mesh?: THREE.Mesh;
   private point: THREE.Points;
   private lod: THREE.LOD;
+  private highPlaceholder: THREE.Group | null = null;
   private orbitAngle: number = Math.random() * Math.PI * 2; // Random start position
 
   private config: {
@@ -66,25 +67,23 @@ export class Planet extends THREE.Group implements CelestialBody {
     const lowDetailDistance = Math.max(50, size * 30);
     this.lod.addLevel(this.point, lowDetailDistance);
 
+    // Register a high-detail placeholder (distance 0) so we can lazily create
+    // the real high-detail mesh only when it's needed.
+    this.highPlaceholder = new THREE.Group();
+    this.highPlaceholder.name = `${this.name}-high-placeholder`;
+    this.lod.addLevel(this.highPlaceholder, 0);
+
     // Position the planet at its initial orbit placement using configured radius
     const x = Math.cos(this.orbitAngle) * this.config.orbitRadius;
     const z = Math.sin(this.orbitAngle) * this.config.orbitRadius;
     this.position.set(x, 0, z);
 
-    // Ensure high-detail mesh exists and keep compatibility
-    this.ensureHighDetailAssets();
-    this.setDetail(true);
+    // Ensure high-detail mesh is available on demand, but do not force creation
+    // at construction time (let LOD or callers request it via `setDetail(true)`).
   }
 
-  /**
-   * Compatibility shim: requesting high detail will ensure the high-detail assets
-   * exist; actual visibility is managed by THREE.LOD.
-   */
-  public setDetail(isHighDetail: boolean): void {
-    if (isHighDetail) {
-      this.ensureHighDetailAssets();
-    }
-  }
+  // Removed setDetail: LOD manages visual detail. High-detail assets are created
+  // lazily when the LOD's high-detail slot becomes visible (see update()).
 
   /**
    * Lazily creates the high-detail Icosahedron geometry
@@ -113,9 +112,22 @@ export class Planet extends THREE.Group implements CelestialBody {
 
     // Register the high-detail level at distance 0 (closest)
     this.lod.addLevel(this.mesh, 0);
+
+    // Remove placeholder if it exists
+    if (this.highPlaceholder) {
+      try {
+        this.lod.remove(this.highPlaceholder);
+      } catch (e) {}
+      this.highPlaceholder = null;
+    }
   }
 
   update(delta: number): void {
+    // If the high-detail placeholder is visible, create the real assets lazily
+    if (this.highPlaceholder && this.highPlaceholder.visible && !this.mesh) {
+      this.ensureHighDetailAssets();
+    }
+
     // 1. Self-Rotation (Day/Night cycle)
     if (this.mesh && this.mesh.visible) {
       this.mesh.rotation.y += 0.5 * delta;

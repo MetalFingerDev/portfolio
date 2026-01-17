@@ -9,7 +9,6 @@ export class RegionManager {
   public activeRegion: Region | null = null;
 
   // Configuration
-  public hysteresis = 1.1;
   public log = true;
 
   public register(region: Region): void {

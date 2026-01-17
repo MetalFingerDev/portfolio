@@ -8,6 +8,7 @@ export class Star extends THREE.Group implements CelestialBody {
   private mesh?: THREE.Mesh;
   private point: THREE.Points;
   private lod: THREE.LOD;
+  private highPlaceholder: THREE.Group | null = null;
 
   private config: {
     intensity: number;
@@ -52,19 +53,11 @@ export class Star extends THREE.Group implements CelestialBody {
     const lowDetailDistance = Math.max(100, radius * 20);
     this.lod.addLevel(this.point, lowDetailDistance);
 
-    // Keep compatibility: ensure high detail assets if someone requests it
-    this.setDetail(true);
-  }
-
-  /**
-   * Compatibility shim: requesting high detail will ensure the high-detail assets
-   * exist; visibility is handled by THREE.LOD, not manually toggled here.
-   */
-  public setDetail(isHighDetail: boolean): void {
-    if (isHighDetail) {
-      this.ensureHighDetailAssets();
-    }
-    // No manual visibility toggles; LOD decides which level to show.
+    // Add a high-detail placeholder level (distance 0). We will lazily create and
+    // register the real high-detail mesh when the placeholder becomes visible.
+    this.highPlaceholder = new THREE.Group();
+    this.highPlaceholder.name = "star-high-placeholder";
+    this.lod.addLevel(this.highPlaceholder, 0);
   }
 
   /**
@@ -106,9 +99,22 @@ export class Star extends THREE.Group implements CelestialBody {
 
     // Register the mesh as the high-detail level at distance 0 (closest)
     this.lod.addLevel(this.mesh, 0);
+
+    // Remove placeholder if present
+    if (this.highPlaceholder) {
+      try {
+        this.lod.remove(this.highPlaceholder);
+      } catch (e) {}
+      this.highPlaceholder = null;
+    }
   }
 
-  update(_delta: number): void {}
+  update(_delta: number): void {
+    // If the high-detail placeholder has become visible, create the real assets lazily
+    if (this.highPlaceholder && this.highPlaceholder.visible && !this.mesh) {
+      this.ensureHighDetailAssets();
+    }
+  }
 
   destroy(): void {
     if (this.parent) this.parent.remove(this);

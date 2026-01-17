@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import Renderer from "../rendering/Display";
-import Ship from "../controls/Ship";
+import Renderer from "../../rendering/Display";
+import Ship from "../../controls/Ship";
 
 export default class Visualization {
   public scene: THREE.Scene;
@@ -22,7 +22,7 @@ export default class Visualization {
   /**
    * Update the list of visible named objects for traversal
    */
-  
+
   /**
    * Traverse to the next visible object and focus camera
    */

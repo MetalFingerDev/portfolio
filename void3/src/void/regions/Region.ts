@@ -7,7 +7,6 @@ export interface RegionEventMap extends THREE.Object3DEventMap {
 }
 
 export interface CelestialBody {
-  setDetail(isHighDetail: boolean): void;
   update(delta: number): void;
   destroy(): void;
   group?: THREE.Group | THREE.Object3D;
@@ -62,15 +61,17 @@ export class Region extends THREE.Group<RegionEventMap> {
   }
 
   /**
-   * Sets the Level of Detail for this region and all its bodies.
+   * Assigns a camera to this region and propagates to child bodies. Default is a no-op
+   * unless specific bodies handle the camera.
    */
-  public setDetail(high: boolean): void {
-    if (this.isHighDetail === high) return;
-    this.isHighDetail = high;
+  public setCamera(camera: THREE.Camera): void {
+    // Store it if consumers need it later
+    (this as any)._camera = camera;
 
+    // Propagate to any child bodies that expose setCamera
     for (const body of this.bodies) {
-      if (typeof body.setDetail === "function") {
-        body.setDetail(high);
+      if (body && typeof (body as any).setCamera === "function") {
+        (body as any).setCamera(camera);
       }
     }
   }

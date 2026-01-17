@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { Region } from "./Region";
 import { RegionManager } from "./RegionManager";
-import { Star } from "../stellar/Star";
-import { Planet } from "../planetary/Planet";
+import { Star } from "../stellar";
+import { Planet } from "../planetary";
 
 const regionManager = new RegionManager();
 
@@ -61,20 +61,6 @@ export class SolarSystem extends Region {
     this.add(shell);
     // store reference for later tweaks
     (this as any).shell = shell;
-  }
-
-  /**
-   * Overrides setDetail to propagate state to all planets and the sun.
-   */
-  public setDetail(isHighDetail: boolean): void {
-    super.setDetail(isHighDetail);
-
-    // Safety check for any children that might need manual detail updates
-    this.children.forEach((child: any) => {
-      if (child && typeof child.setDetail === "function") {
-        child.setDetail(isHighDetail);
-      }
-    });
   }
 
   // Ensure we unregister when the solar system is destroyed

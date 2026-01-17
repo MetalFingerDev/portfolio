@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Region, type CelestialBody } from "./Region";
-import { Star } from "../stellar/Star";
+import { Star } from "../stellar";
 
 export class LocalFluff extends Region implements CelestialBody {
   constructor(
@@ -37,7 +37,6 @@ export class LocalFluff extends Region implements CelestialBody {
     }
   }
 
-  setDetail(_isHighDetail: boolean): void {}
   update(_delta: number): void {}
 
   destroy(): void {

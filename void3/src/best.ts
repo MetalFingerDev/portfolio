@@ -5,9 +5,9 @@ import Display from "./rendering/Display";
 import Ship from "./controls/Ship";
 import Space from "./scenes/Space";
 
-import { SolarSystem } from "./regions/SolarSystem";
-import { MilkyWay } from "./regions/MilkyWay";
-import { LocalGroup } from "./regions/LocalGroup";
+import { SolarSystem } from "./void/regions";
+import { MilkyWay } from "./void/regions";
+import { LocalGroup } from "./void/regions";
 // --- Setup ---
 
 const canvas = document.querySelector("#app") as HTMLCanvasElement | null;
@@ -31,7 +31,6 @@ const space = new Space({
 const solar = new SolarSystem();
 space.add(solar);
 solar.setCamera(ship.camera);
-solar.setDetail(true);
 
 const target = new THREE.Vector3();
 if (solar.earth) {
@@ -46,7 +45,6 @@ if (solar.earth) {
 const milkyWay = new MilkyWay();
 space.add(milkyWay);
 milkyWay.setCamera(ship.camera);
-milkyWay.setDetail(true);
 
 // The LocalGroup contains the MilkyWay (at 0,0,0) and Andromeda (at distance).
 const localGroup = new LocalGroup();
@@ -54,7 +52,6 @@ space.add(localGroup);
 
 // Pass the camera and detail settings just like before
 localGroup.setCamera(ship.camera);
-localGroup.setDetail(true);
 
 const clock = new THREE.Clock();
 function animate() {

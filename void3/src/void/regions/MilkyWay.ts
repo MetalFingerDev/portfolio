@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Region, type CelestialBody } from "./Region";
-import { Star } from "../stellar/Star";
+import { Star } from "../stellar";
 
 export class MilkyWay extends Region implements CelestialBody {
   public mesh: THREE.Mesh;
@@ -29,8 +29,6 @@ export class MilkyWay extends Region implements CelestialBody {
     this.populateStars(1000);
 
     this.position.set(200000, 0, 0);
-
-    this.bodies.push(this);
   }
 
   private populateStars(starCount: number) {
@@ -44,21 +42,10 @@ export class MilkyWay extends Region implements CelestialBody {
 
       const star = new Star(1.5, 100, 0xffcc00);
       star.position.set(x, height, z);
-      star.setDetail(true);
       this.add(star);
 
       this.bodies.push(star);
     }
-  }
-
-  setDetail(isHighDetail: boolean): void {
-    super.setDetail(isHighDetail);
-
-    this.children.forEach((c: any) => {
-      try {
-        if (c && typeof c.setDetail === "function") c.setDetail(isHighDetail);
-      } catch (e) {}
-    });
   }
 
   update(delta: number): void {
