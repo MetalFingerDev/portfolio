@@ -21,7 +21,7 @@ const display = new Display(canvas, {
 display.setSize(window.innerWidth, window.innerHeight);
 
 const ship = new Ship(canvas);
-ship.camera.position.set(0, 20000, 80000);
+ship.camera.position.set(0, 20, 8);
 ship.controls.enableDamping = true;
 
 const space = new Space({

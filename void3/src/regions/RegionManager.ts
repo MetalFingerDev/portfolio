@@ -31,20 +31,19 @@ export class RegionManager {
     let bestCandidate: Region | null = null;
 
     for (const region of this.regions) {
-      // 1. Calculate distance to region center
       const regionPos = new THREE.Vector3();
       region.getWorldPosition(regionPos);
+      const dist = regionPos.distanceTo(camPos);
 
-      const distSq = regionPos.distanceToSquared(camPos);
-
-      // 2. Apply Hysteresis: If already inside, use a larger boundary to prevent flickering
       const isCurrentlyActive = region === this.activeRegion;
-      const buffer = isCurrentlyActive ? this.hysteresis : 1.0;
-      const thresholdSq = Math.pow(region.radius * buffer, 2);
+      // Use the Region's specific shells: exitRadius if currently active, otherwise entryRadius
+      const effectiveThreshold = isCurrentlyActive
+        ? region.exitRadius
+        : region.entryRadius;
 
-      // 3. Nested Logic: The "smallest" containing region becomes the active candidate
-      if (distSq < thresholdSq) {
-        if (!bestCandidate || region.radius < bestCandidate.radius) {
+      // Nested Logic: choose the region with the smallest entryRadius that contains the camera
+      if (dist < effectiveThreshold) {
+        if (!bestCandidate || region.entryRadius < bestCandidate.entryRadius) {
           bestCandidate = region;
         }
       }
@@ -74,7 +73,7 @@ export class RegionManager {
       next.dispatchEvent({ type: "enter" } as any);
       if (this.log)
         console.info(
-          `[RegionManager] Entering: ${next.name} (Radius: ${next.radius})`
+          `[RegionManager] Entering: ${next.name} (entryRadius=${next.entryRadius}, exitRadius=${next.exitRadius})`
         );
     }
 
@@ -82,4 +81,3 @@ export class RegionManager {
   }
 }
 
-export const regionManager = new RegionManager();

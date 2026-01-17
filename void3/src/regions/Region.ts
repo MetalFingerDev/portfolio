@@ -20,7 +20,10 @@ export interface CelestialBody {
 export class Region extends THREE.Group<RegionEventMap> {
   public bodies: CelestialBody[] = [];
   public cfg: any;
-  public radius: number;
+
+  // Entry/Exit shells for LOD hysteresis
+  public entryRadius: number;
+  public exitRadius: number;
 
   // LOD State tracking
   public isHighDetail: boolean = false;
@@ -29,7 +32,12 @@ export class Region extends THREE.Group<RegionEventMap> {
   constructor(cfg?: any) {
     super();
     this.cfg = cfg || {};
-    this.radius = cfg?.radius || 1000;
+
+    // Explicitly define entry and exit shells
+    this.entryRadius = cfg?.entryRadius || cfg?.radius || 1000;
+    // Default exit shell to 10% larger if not specified
+    this.exitRadius = cfg?.exitRadius || this.entryRadius * 1.1;
+
     this.name = cfg?.name || "Unnamed Region";
   }
 

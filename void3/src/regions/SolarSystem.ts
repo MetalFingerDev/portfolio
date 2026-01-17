@@ -1,116 +1,112 @@
+import * as THREE from "three";
 import { Region } from "./Region";
-import { regionManager } from "./RegionManager";
+import { RegionManager } from "./RegionManager";
 import { Star } from "../stellar/Star";
 import { Planet } from "../planetary/Planet";
 
+const regionManager = new RegionManager();
+
 export class SolarSystem extends Region {
   public sun: Star;
-  public planets: Record<string, Planet> = {}; // Quick access map if needed
-
+  public planets: Record<string, Planet> = {};
   constructor(cfg?: any) {
-    // 1. Define Radius:
-    // The furthest planet (Neptune) is roughly at distance ~100.
-    // We set a very large radius to ensure a comfortable "High Detail" zone around the system.
     super({ ...cfg, radius: 2000 });
 
     this.name = "solar-system";
+    regionManager.register(this);
 
     // --- SUN ---
-    // High detail Sun (intensity 5, radius 1.5)
-    this.sun = new Star(1.5, 5, 0xffcc00);
+    this.sun = new Star(5000, 5, 0xfff3ef);
     this.sun.name = "Sun";
     this.add(this.sun);
     this.bodies.push(this.sun);
 
     // --- PLANETS CONFIGURATION ---
-    // Optimized: Data-driven generation instead of repeated "new Planet()" calls
     const planetData = [
       { name: "Mercury", color: 0xaaaaaa, scale: 0.8 },
       { name: "Venus", color: 0xe3bb76, scale: 1.2 },
       { name: "Earth", color: 0x2233ff, scale: 1.3 },
       { name: "Mars", color: 0xff3300, scale: 1.0 },
       { name: "Jupiter", color: 0xd8ca9d, scale: 3.5 },
-      { name: "Saturn", color: 0xc5ab6e, scale: 3.0 },
-      { name: "Uranus", color: 0x4fd0e7, scale: 2.0 },
-      { name: "Neptune", color: 0x5b5ddf, scale: 2.0 },
+      { name: "Saturn", color: 0xead6b8, scale: 3.0 },
+      { name: "Uranus", color: 0xbbe1e4, scale: 2.2 },
+      { name: "Neptune", color: 0x6081ff, scale: 2.1 },
     ];
 
-    let currentDist = 10;
+    let currentDist = 8;
 
     planetData.forEach((data) => {
-      const p = new Planet(data.name, data.color, data.scale);
-
-      // Position Logic
-      p.position.setX(currentDist);
+      const p = new Planet(data.name, data.color, data.scale, currentDist);
 
       this.add(p);
       this.bodies.push(p);
       this.planets[data.name.toLowerCase()] = p;
 
-      // Spacing update
-      currentDist += 8 + p.scale.x * 2;
+      currentDist += 10 + data.scale * 1.2;
     });
 
-    // Add some background stars
-    this.populateStars(10);
+    // --- SYSTEM SHELL ---
+    // Add a large, inward-facing shell so the interior appears rebeccapurple
+    const shellRadius = cfg?.shellRadius ?? 800; // configurable via constructor cfg
+    const shellGeom = new THREE.SphereGeometry(shellRadius, 64, 32);
+    const shellMat = new THREE.MeshBasicMaterial({
+      color: 0x663399, // rebeccapurple
+      side: THREE.BackSide,
+      depthWrite: false,
+      transparent: true,
+      opacity: 0.98,
+    });
+    const shell = new THREE.Mesh(shellGeom, shellMat);
+    shell.name = "solar-shell";
+    this.add(shell);
+    // store reference for later tweaks
+    (this as any).shell = shell;
   }
 
-  private populateStars(starCount: number) {
-    for (let i = 0; i < starCount; i++) {
-      const radialDistance = 400000 * Math.sqrt(Math.random());
-      const angle = Math.random() * Math.PI * 2;
-      const height = (Math.random() - 0.5) * 200;
-
-      const x = radialDistance * Math.cos(angle);
-      const z = radialDistance * Math.sin(angle);
-
-      const star = new Star(1.5, 50, 0xffcc00);
-      star.position.set(x, height, z);
-      // Background stars are low-detail by default
-      try {
-        star.setDetail(false);
-      } catch (e) {}
-      this.add(star);
-
-      this.bodies.push(star);
-    }
-  }
-
+  /**
+   * Overrides setDetail to propagate state to all planets and the sun.
+   */
   public setDetail(isHighDetail: boolean): void {
-    // propagate to bodies
     super.setDetail(isHighDetail);
 
-    // Log detail changes when manager logging enabled
-    if (regionManager.log) {
-      console.info(
-        `[SolarSystem] setDetail -> ${isHighDetail ? "HIGH" : "LOW"}`
-      );
-    }
+    // Safety check for any children that might need manual detail updates
+    this.children.forEach((child: any) => {
+      if (child && typeof child.setDetail === "function") {
+        child.setDetail(isHighDetail);
+      }
+    });
   }
 
-  // Maintain compatibility getters for existing code that expects `solar.earth` etc.
-  public get mercury(): Planet | undefined {
+  // Ensure we unregister when the solar system is destroyed
+  public destroy(): void {
+    try {
+      regionManager.unregister(this);
+    } catch (e) {}
+    super.destroy();
+  }
+
+  public get mercury() {
     return this.planets["mercury"];
   }
-  public get venus(): Planet | undefined {
+  public get venus() {
     return this.planets["venus"];
   }
-  public get earth(): Planet | undefined {
+  public get earth() {
     return this.planets["earth"];
   }
-  public get mars(): Planet | undefined {
+  public get mars() {
     return this.planets["mars"];
   }
-  public get jupiter(): Planet | undefined {
+  public get jupiter() {
     return this.planets["jupiter"];
   }
-  public get saturn(): Planet | undefined {
+  public get saturn() {
     return this.planets["saturn"];
   }
-  public get uranus(): Planet | undefined {
+  public get uranus() {
     return this.planets["uranus"];
   }
-  public get neptune(): Planet | undefined {
+  public get neptune() {
     return this.planets["neptune"];
   }
 }
