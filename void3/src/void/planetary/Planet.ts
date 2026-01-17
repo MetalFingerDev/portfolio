@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type CelestialBody } from "../regions/Region";
+import { type CelestialBody } from "../regions";
 
 /**
  * Planet with Level of Detail (LOD)
@@ -43,6 +43,12 @@ export class Planet extends THREE.Group implements CelestialBody {
     this.lod = new THREE.LOD();
     this.add(this.lod);
 
+    // Register a high-detail placeholder (distance 0) so we can lazily create
+    // the real high-detail mesh only when it's needed.
+    this.highPlaceholder = new THREE.Group();
+    this.highPlaceholder.name = `${this.name}-high-placeholder`;
+    this.lod.addLevel(this.highPlaceholder, 0);
+
     // 1. Low Detail: Point Geometry
     // We use a single point at the origin of the group
     const pointGeom = new THREE.BufferGeometry();
@@ -63,15 +69,9 @@ export class Planet extends THREE.Group implements CelestialBody {
     this.point = new THREE.Points(pointGeom, pointMat);
     this.point.name = `${this.name}-point`;
 
-    // Register low-detail level; use a reasonable distance threshold based on size
-    const lowDetailDistance = Math.max(50, size * 30);
+    // Register low-detail level to always be available at far distances
+    const lowDetailDistance = Number.POSITIVE_INFINITY;
     this.lod.addLevel(this.point, lowDetailDistance);
-
-    // Register a high-detail placeholder (distance 0) so we can lazily create
-    // the real high-detail mesh only when it's needed.
-    this.highPlaceholder = new THREE.Group();
-    this.highPlaceholder.name = `${this.name}-high-placeholder`;
-    this.lod.addLevel(this.highPlaceholder, 0);
 
     // Position the planet at its initial orbit placement using configured radius
     const x = Math.cos(this.orbitAngle) * this.config.orbitRadius;

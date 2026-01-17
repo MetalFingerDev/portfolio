@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type CelestialBody } from "../regions/Region";
+import { type CelestialBody } from "../regions";
 
 export class Star extends THREE.Group implements CelestialBody {
   public readonly isStar = true; // Identifier for automatic relationships
@@ -32,6 +32,12 @@ export class Star extends THREE.Group implements CelestialBody {
     this.lod = new THREE.LOD();
     this.add(this.lod);
 
+    // Add a high-detail placeholder level (distance 0). We will lazily create and
+    // register the real high-detail mesh when the placeholder becomes visible.
+    this.highPlaceholder = new THREE.Group();
+    this.highPlaceholder.name = "star-high-placeholder";
+    this.lod.addLevel(this.highPlaceholder, 0);
+
     // 1. Low Detail: Point Geometry (uses star color)
     const pointGeom = new THREE.BufferGeometry();
     pointGeom.setAttribute(
@@ -49,15 +55,9 @@ export class Star extends THREE.Group implements CelestialBody {
     this.point = new THREE.Points(pointGeom, pointMat);
     this.point.name = "star-point";
 
-    // Add low-detail level to LOD (visible when far enough away)
-    const lowDetailDistance = Math.max(100, radius * 20);
+    // Add low-detail level to LOD (visible at all far distances)
+    const lowDetailDistance = Number.POSITIVE_INFINITY;
     this.lod.addLevel(this.point, lowDetailDistance);
-
-    // Add a high-detail placeholder level (distance 0). We will lazily create and
-    // register the real high-detail mesh when the placeholder becomes visible.
-    this.highPlaceholder = new THREE.Group();
-    this.highPlaceholder.name = "star-high-placeholder";
-    this.lod.addLevel(this.highPlaceholder, 0);
   }
 
   /**

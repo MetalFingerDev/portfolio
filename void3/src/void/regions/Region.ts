@@ -24,6 +24,10 @@ export class Region extends THREE.Group<RegionEventMap> {
   public entryRadius: number;
   public exitRadius: number;
 
+  // Debug visualization meshes (optional)
+  private _debugEntryShell?: THREE.Mesh;
+  private _debugExitShell?: THREE.Mesh;
+
   // LOD State tracking
   public isHighDetail: boolean = false;
   private _isUpdating = false;
@@ -38,6 +42,11 @@ export class Region extends THREE.Group<RegionEventMap> {
     this.exitRadius = cfg?.exitRadius || this.entryRadius * 1.1;
 
     this.name = cfg?.name || "Unnamed Region";
+
+    // Optional debug visualization of the entry/exit shells
+    if (cfg?.debugShells) {
+      this.toggleDebugShells(true);
+    }
   }
 
   /**
@@ -57,6 +66,53 @@ export class Region extends THREE.Group<RegionEventMap> {
       }
     } finally {
       this._isUpdating = false;
+    }
+  }
+
+  /**
+   * Toggle or create debug wireframe spheres that visualize entry/exit shells.
+   */
+  public toggleDebugShells(show: boolean = true) {
+    // Helper to create the meshes lazily
+    const ensureMeshes = () => {
+      if (!this._debugEntryShell) {
+        const g = new THREE.SphereGeometry(this.entryRadius, 32, 16);
+        const m = new THREE.MeshBasicMaterial({
+          color: 0x00ff00,
+          wireframe: true,
+          depthWrite: false,
+          transparent: true,
+          opacity: 0.6,
+        });
+        this._debugEntryShell = new THREE.Mesh(g, m);
+        this._debugEntryShell.name = "debug-entry-shell";
+        this._debugEntryShell.renderOrder = 1000;
+        this.add(this._debugEntryShell);
+      }
+
+      if (!this._debugExitShell) {
+        const g = new THREE.SphereGeometry(this.exitRadius, 32, 16);
+        const m = new THREE.MeshBasicMaterial({
+          color: 0xff0000,
+          wireframe: true,
+          depthWrite: false,
+          transparent: true,
+          opacity: 0.45,
+        });
+        this._debugExitShell = new THREE.Mesh(g, m);
+        this._debugExitShell.name = "debug-exit-shell";
+        this._debugExitShell.renderOrder = 1000;
+        this.add(this._debugExitShell);
+      }
+    };
+
+    if (show) {
+      ensureMeshes();
+      if (this._debugEntryShell) this._debugEntryShell.visible = true;
+      if (this._debugExitShell) this._debugExitShell.visible = true;
+    } else {
+      if (this._debugEntryShell) this._debugEntryShell.visible = false;
+      if (this._debugExitShell) this._debugExitShell.visible = false;
     }
   }
 

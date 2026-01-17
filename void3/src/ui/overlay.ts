@@ -1,5 +1,6 @@
 export default class Overlay {
   private el: HTMLDivElement;
+  private notifContainer: HTMLDivElement;
 
   constructor() {
     this.el = document.createElement("div");
@@ -16,6 +17,17 @@ export default class Overlay {
     this.el.style.pointerEvents = "none";
     this.el.innerText = "System: (none)\nScale: -";
     document.body.appendChild(this.el);
+
+    // Container for transient notifications (top-right)
+    this.notifContainer = document.createElement("div");
+    this.notifContainer.style.position = "fixed";
+    this.notifContainer.style.right = "8px";
+    this.notifContainer.style.top = "8px";
+    this.notifContainer.style.display = "flex";
+    this.notifContainer.style.flexDirection = "column";
+    this.notifContainer.style.gap = "8px";
+    this.notifContainer.style.zIndex = "10000";
+    document.body.appendChild(this.notifContainer);
   }
 
   update(name: string | null, scale: number | null) {
@@ -24,7 +36,32 @@ export default class Overlay {
     this.el.innerText = `System: ${n}\nScale: ${s}`;
   }
 
+  notify(message: string, durationMs: number = 3000) {
+    const node = document.createElement("div");
+    node.style.background = "rgba(0,0,0,0.75)";
+    node.style.color = "#fff";
+    node.style.fontFamily = "monospace, sans-serif";
+    node.style.fontSize = "13px";
+    node.style.padding = "8px 12px";
+    node.style.borderRadius = "6px";
+    node.style.opacity = "1";
+    node.style.transition = "opacity 300ms ease, transform 300ms ease";
+    node.style.pointerEvents = "auto";
+    node.innerText = message;
+
+    // Insert at top
+    this.notifContainer.insertBefore(node, this.notifContainer.firstChild);
+
+    // Auto-dismiss
+    setTimeout(() => {
+      node.style.opacity = "0";
+      node.style.transform = "translateY(-6px)";
+      setTimeout(() => node.remove(), 350);
+    }, durationMs);
+  }
+
   destroy() {
     this.el.remove();
+    this.notifContainer.remove();
   }
 }

@@ -1,13 +1,11 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import { SolarSystem } from "./void/regions/SolarSystem";
-import { RegionManager } from "./void/regions/RegionManager";
+import { SolarSystem, MilkyWay } from "./void/regions";
+import { regionManager } from "./void/regions/RegionManager";
 
 const canvas = document.querySelector("#app") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("Canvas not found");
-
-const regionManager = new RegionManager();
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
@@ -32,16 +30,10 @@ const space = new THREE.Scene();
 const solar = new SolarSystem();
 space.add(solar);
 
-solar.addEventListener("enter", () => {
-  if (solar.sun) {
-    controls.update();
-  }
-});
+const milkyWay = new MilkyWay();
+space.add(milkyWay);
 
-solar.addEventListener("exit", () => {
-  if (regionManager.activeRegion && (regionManager.activeRegion as any).sun)
-    controls.update();
-});
+
 
 // Animation / render loop
 const clock = new THREE.Clock();

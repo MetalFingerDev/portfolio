@@ -5,10 +5,10 @@ import { Star } from "../stellar";
 export class MilkyWay extends Region implements CelestialBody {
   public mesh: THREE.Mesh;
 
-  constructor() {
+  constructor(cfg?: any) {
     const thickness = 20000;
     const radius = 400000;
-    super({ radius });
+    super({ ...cfg, radius });
 
     this.name = "MilkyWay";
 
@@ -26,7 +26,24 @@ export class MilkyWay extends Region implements CelestialBody {
     this.mesh = new THREE.Mesh(geometry, material);
     this.add(this.mesh);
 
-    this.populateStars(1000);
+    // --- SHELL ---
+    // Add a large, inward-facing shell to enclose the galaxy (configurable via cfg.shellRadius)
+    const shellRadius = cfg?.shellRadius ?? radius + thickness;
+    const shellGeom = new THREE.SphereGeometry(shellRadius, 64, 32);
+    const shellMat = new THREE.MeshBasicMaterial({
+      color: 0x4b0082,
+      side: THREE.BackSide,
+      depthWrite: false,
+      transparent: true,
+      opacity: 0.98,
+    });
+    const shell = new THREE.Mesh(shellGeom, shellMat);
+    shell.name = "milkyway-shell";
+    this.add(shell);
+    // store reference for later tweaks
+    (this as any).shell = shell;
+
+    this.populateStars(cfg?.starCount ?? 1000);
 
     this.position.set(200000, 0, 0);
   }

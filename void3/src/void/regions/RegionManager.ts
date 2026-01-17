@@ -11,6 +11,11 @@ export class RegionManager {
   // Configuration
   public log = true;
 
+  // Simple transition listeners (avoid depending on THREE.EventDispatcher typing)
+  private _transitionListeners: Set<
+    (ev: { previous: Region | null; next: Region | null }) => void
+  > = new Set();
+
   public register(region: Region): void {
     this.regions.add(region);
   }
@@ -18,6 +23,27 @@ export class RegionManager {
   public unregister(region: Region): void {
     this.regions.delete(region);
     if (this.activeRegion === region) this.activeRegion = null;
+  }
+
+  /**
+   * Returns a snapshot array of all registered regions. Useful for consumers
+   * (like the Ship) that need to inspect shells/radii.
+   */
+  public getRegions(): Region[] {
+    return Array.from(this.regions);
+  }
+
+  // Simple subscribe/unsubscribe helpers for the 'transition' event.
+  public onTransition(
+    listener: (ev: { previous: Region | null; next: Region | null }) => void
+  ) {
+    this._transitionListeners.add(listener);
+  }
+
+  public offTransition(
+    listener: (ev: { previous: Region | null; next: Region | null }) => void
+  ) {
+    this._transitionListeners.delete(listener);
   }
 
   /**
@@ -68,11 +94,12 @@ export class RegionManager {
   }
 
   private transitionTo(next: Region | null): void {
-    if (this.activeRegion) {
+    const previous = this.activeRegion;
+
+    if (previous) {
       // We no longer toggle detail states here; LOD handles visual detail.
-      this.activeRegion.dispatchEvent({ type: "exit" } as any);
-      if (this.log)
-        console.info(`[RegionManager] Exiting: ${this.activeRegion.name}`);
+      previous.dispatchEvent({ type: "exit" } as any);
+      if (this.log) console.info(`[RegionManager] Exiting: ${previous.name}`);
     }
 
     if (next) {
@@ -83,6 +110,18 @@ export class RegionManager {
         );
     }
 
+    // Notify external listeners about the transition (previous may be null)
+    for (const l of this._transitionListeners) {
+      try {
+        l({ previous, next });
+      } catch (e) {
+        // swallow listener errors to avoid breaking manager
+      }
+    }
+
     this.activeRegion = next;
   }
 }
+
+// Export a singleton instance for app-wide use
+export const regionManager = new RegionManager();

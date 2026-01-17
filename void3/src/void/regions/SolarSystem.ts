@@ -1,10 +1,8 @@
 import * as THREE from "three";
 import { Region } from "./Region";
-import { RegionManager } from "./RegionManager";
+import { regionManager } from "./RegionManager";
 import { Star } from "../stellar";
 import { Planet } from "../planetary";
-
-const regionManager = new RegionManager();
 
 export class SolarSystem extends Region {
   public sun: Star;
@@ -47,7 +45,7 @@ export class SolarSystem extends Region {
 
     // --- SYSTEM SHELL ---
     // Add a large, inward-facing shell so the interior appears rebeccapurple
-    const shellRadius = cfg?.shellRadius ?? 800; // configurable via constructor cfg
+    const shellRadius = cfg?.shellRadius ?? 2200; // configurable via constructor cfg
     const shellGeom = new THREE.SphereGeometry(shellRadius, 64, 32);
     const shellMat = new THREE.MeshBasicMaterial({
       color: 0x663399, // rebeccapurple
