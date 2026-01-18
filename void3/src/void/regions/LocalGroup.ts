@@ -26,6 +26,10 @@ class DistantGalaxy extends Region implements CelestialBody {
     this.add(this.mesh);
   }
 
+  public create(): void {
+    // No-op for placeholder galaxy
+  }
+
   destroy() {
     if (this.parent) this.parent.remove(this);
     (this.mesh.geometry as THREE.BufferGeometry).dispose();
@@ -66,6 +70,10 @@ class Andromeda extends Region implements CelestialBody {
     this.add(this.mesh);
 
     // NOTE: Andromeda no longer populates with stars (handled by MilkyWay density approach)
+  }
+
+  public create(): void {
+    // No-op for Andromeda placeholder
   }
 
   update(delta: number): void {
@@ -121,7 +129,7 @@ export class LocalGroup extends Region implements CelestialBody {
       const dir = new THREE.Vector3(
         Math.random() * 2 - 1,
         Math.random() * 2 - 1,
-        Math.random() * 2 - 1
+        Math.random() * 2 - 1,
       ).normalize();
 
       const distance = minDist + Math.random() * (maxDist - minDist);
@@ -142,6 +150,12 @@ export class LocalGroup extends Region implements CelestialBody {
   update(delta: number): void {
     // Update all child galaxies
     super.update(delta);
+  }
+
+  public create(): void {
+    // Propagate create to managed galaxies
+    this.andromeda?.create?.();
+    this.bodies.forEach((b) => (b as any).create?.());
   }
 
   destroy(): void {

@@ -1,14 +1,14 @@
 import * as THREE from "three";
-import { type CelestialBody } from "../regions";
+import { CelestialBody } from "../regions";
 
-export class Star extends THREE.Group implements CelestialBody {
-  public readonly isStar = true; // Identifier for automatic relationships
-
-  private light?: THREE.PointLight;
-  private mesh?: THREE.Mesh;
-  private point: THREE.Points;
-  private lod: THREE.LOD;
-  private highPlaceholder: THREE.Group | null = null;
+/**
+ * Star object
+ * Has PointLight at its core
+ */
+export class Star extends CelestialBody {
+  public readonly isStar = true;
+  public readonly isPlanet = false;
+  public light?: THREE.PointLight;
 
   private config: {
     intensity: number;
@@ -21,57 +21,25 @@ export class Star extends THREE.Group implements CelestialBody {
     intensity: number = 10000,
     radius: number = 5,
     color: number = 0xffffff,
-    emission: boolean = true
+    emission: boolean = true,
+    name?: string,
   ) {
-    super();
-    this.name = "Star";
+    super(name || "Star");
 
     this.config = { intensity, radius, color, emission };
 
-    // THREE.LOD instance to manage geometry detail levels
-    this.lod = new THREE.LOD();
-    this.add(this.lod);
-
-    // Add a high-detail placeholder level (distance 0). We will lazily create and
-    // register the real high-detail mesh when the placeholder becomes visible.
-    this.highPlaceholder = new THREE.Group();
-    this.highPlaceholder.name = "star-high-placeholder";
-    this.lod.addLevel(this.highPlaceholder, 0);
-
-    // 1. Low Detail: Point Geometry (uses star color)
-    const pointGeom = new THREE.BufferGeometry();
-    pointGeom.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute([0, 0, 0], 3)
-    );
-    const pointMat = new THREE.PointsMaterial({
-      color: color,
-      size: 1.5,
-      sizeAttenuation: false,
-      transparent: true,
-      opacity: 1,
-      depthWrite: false,
-    });
-    this.point = new THREE.Points(pointGeom, pointMat);
-    this.point.name = "star-point";
-
-    // Add low-detail level to LOD (visible at all far distances)
-    const lowDetailDistance = Number.POSITIVE_INFINITY;
-    this.lod.addLevel(this.point, lowDetailDistance);
+    this.group = new THREE.Group();
+    this.group.name = `${this.name}-high-placeholder`;
+    this.add(this.group);
   }
 
   /**
-   * Lazily creates the high-detail Icosahedron mesh and light and registers them with LOD.
+   * Lazily creates the Icosahedron mesh and light and registers them with LOD.
    */
-  private ensureHighDetailAssets(): void {
+  public create(): void {
     if (this.mesh) return;
-
     const { color, radius, intensity, emission } = this.config;
-
-    // 2. High Detail: Icosahedron Geometry
     const geometry = new THREE.IcosahedronGeometry(1, 6);
-
-    // Use MeshStandardMaterial so planets react to this star's light
     const material = new THREE.MeshStandardMaterial({
       color: color,
       emissive: color,
@@ -79,16 +47,12 @@ export class Star extends THREE.Group implements CelestialBody {
       roughness: 0.5,
       metalness: 0.0,
     });
-
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.scale.setScalar(radius);
     this.mesh.name = "star-mesh";
-
-    // the star mesh itself should not cast shadow on planets (it emits light)
     this.mesh.castShadow = false;
     this.mesh.receiveShadow = false;
-
-    // Attach light as a child of the mesh so it follows the high-detail level
+    if (this.group) this.group.add(this.mesh);
     if (emission) {
       this.light = new THREE.PointLight(color, intensity, 0);
       this.light.castShadow = true;
@@ -96,38 +60,44 @@ export class Star extends THREE.Group implements CelestialBody {
       this.light.shadow.bias = -0.001;
       this.mesh.add(this.light);
     }
+  }
 
-    // Register the mesh as the high-detail level at distance 0 (closest)
-    this.lod.addLevel(this.mesh, 0);
+  public setCamera(_camera: THREE.Camera): void {
+    // Stars usually don't need camera-specific logic unless doing lens flares
+  }
 
-    // Remove placeholder if present
-    if (this.highPlaceholder) {
-      try {
-        this.lod.remove(this.highPlaceholder);
-      } catch (e) {}
-      this.highPlaceholder = null;
+  public update(delta: number): void {
+    if (this.group && this.group.visible && !this.mesh) {
+      this.create();
+    }
+
+    // Per-star updates
+    this.onUpdate?.(delta);
+
+    // Update any child bodies
+    for (const child of this.children) {
+      if (typeof (child as any).update === "function") {
+        (child as any).update(delta);
+      }
     }
   }
 
-  update(_delta: number): void {
-    // If the high-detail placeholder has become visible, create the real assets lazily
-    if (this.highPlaceholder && this.highPlaceholder.visible && !this.mesh) {
-      this.ensureHighDetailAssets();
-    }
-  }
-
-  destroy(): void {
-    if (this.parent) this.parent.remove(this);
-    if (this.point.geometry) this.point.geometry.dispose();
-    if (this.point.material) (this.point.material as THREE.Material).dispose();
-    if (this.mesh) {
+  protected onDestroy(): void {
+    if (this.mesh && this.mesh instanceof THREE.Mesh) {
       this.mesh.geometry.dispose();
       (this.mesh.material as THREE.Material).dispose();
     }
     if (this.light) {
       try {
-        this.light.dispose();
+        // PointLight does not have a standard dispose method, but call if present
+        (this.light as any).dispose?.();
       } catch (e) {}
     }
+  }
+
+  protected onUpdate(delta: number): void {
+    // Stars are usually static in system-space, but could rotate
+    if (this.mesh && (this.mesh as THREE.Mesh).visible)
+      this.mesh.rotation.y += delta * 0.1;
   }
 }

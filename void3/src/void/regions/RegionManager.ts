@@ -35,13 +35,13 @@ export class RegionManager {
 
   // Simple subscribe/unsubscribe helpers for the 'transition' event.
   public onTransition(
-    listener: (ev: { previous: Region | null; next: Region | null }) => void
+    listener: (ev: { previous: Region | null; next: Region | null }) => void,
   ) {
     this._transitionListeners.add(listener);
   }
 
   public offTransition(
-    listener: (ev: { previous: Region | null; next: Region | null }) => void
+    listener: (ev: { previous: Region | null; next: Region | null }) => void,
   ) {
     this._transitionListeners.delete(listener);
   }
@@ -54,19 +54,18 @@ export class RegionManager {
     camera.getWorldPosition(camPos);
 
     let bestCandidate: Region | null = null;
+    const tempPos = new THREE.Vector3();
 
     for (const region of this.regions) {
-      const regionPos = new THREE.Vector3();
-      region.getWorldPosition(regionPos);
-      const dist = regionPos.distanceTo(camPos);
+      // Optimization: Check distance using world position
+      region.getWorldPosition(tempPos);
+      const dist = tempPos.distanceTo(camPos);
 
       const isCurrentlyActive = region === this.activeRegion;
-      // Use the Region's specific shells: exitRadius if currently active, otherwise entryRadius
       const effectiveThreshold = isCurrentlyActive
         ? region.exitRadius
         : region.entryRadius;
 
-      // Nested Logic: choose the region with the smallest entryRadius that contains the camera
       if (dist < effectiveThreshold) {
         if (!bestCandidate || region.entryRadius < bestCandidate.entryRadius) {
           bestCandidate = region;
@@ -74,22 +73,22 @@ export class RegionManager {
       }
     }
 
-    // 4. Handle Transitions (we keep enter/exit events for semantic purposes,
-    // but we no longer toggle details here — Three.js LOD will manage geometry levels)
     if (bestCandidate !== this.activeRegion) {
       this.transitionTo(bestCandidate);
     }
 
-    // 5. Update all regions (animations, orbits, etc.) and let any THREE.LOD instances
-    // inside each region decide which level to show based on camera distance.
+    // Update all regions
     for (const region of this.regions) {
-      region.update(delta);
-      region.traverse((obj) => {
-        if (obj instanceof THREE.LOD) {
-          // Let the LOD instance pick the correct level for this camera
-          obj.update(camera);
-        }
-      });
+      region.update(delta); // Now works because of the change in CelestialBody
+
+      // Only update LOD for visible regions to save performance
+      if (region === this.activeRegion || region.visible) {
+        region.traverse((obj) => {
+          if (obj instanceof THREE.LOD) {
+            obj.update(camera);
+          }
+        });
+      }
     }
   }
 
@@ -106,7 +105,7 @@ export class RegionManager {
       next.dispatchEvent({ type: "enter" } as any);
       if (this.log)
         console.info(
-          `[RegionManager] Entering: ${next.name} (entryRadius=${next.entryRadius}, exitRadius=${next.exitRadius})`
+          `[RegionManager] Entering: ${next.name} (entryRadius=${next.entryRadius}, exitRadius=${next.exitRadius})`,
         );
     }
 

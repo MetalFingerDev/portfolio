@@ -48,6 +48,10 @@ export class MilkyWay extends Region implements CelestialBody {
     this.position.set(200000, 0, 0);
   }
 
+  public create(): void {
+    // No-op: MilkyWay initializes synchronously in constructor
+  }
+
   private populateStars(starCount: number) {
     for (let i = 0; i < starCount; i++) {
       const radialDistance = 400000 * Math.sqrt(Math.random());

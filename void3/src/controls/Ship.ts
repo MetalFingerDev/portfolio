@@ -32,6 +32,7 @@ export default class Ship {
   private _lerpEndCam: THREE.Vector3 = new THREE.Vector3();
   private _lerpStartTarget: THREE.Vector3 = new THREE.Vector3();
   private _lerpEndTarget: THREE.Vector3 = new THREE.Vector3();
+  private _lastFarCheckPos: THREE.Vector3 = new THREE.Vector3();
 
   constructor(
     domElement: HTMLCanvasElement,
@@ -44,7 +45,7 @@ export default class Ship {
       notifyOnTransition?: boolean;
       smoothingEnabled?: boolean;
       smoothingDurationMs?: number;
-    }
+    },
   ) {
     this.width = domElement.width || window.innerWidth;
     this.height = domElement.height || window.innerHeight;
@@ -55,7 +56,7 @@ export default class Ship {
       60,
       this.width / this.height,
       0.1,
-      desiredFar
+      desiredFar,
     );
     this.camera.position.set(0, 0, 50);
     this.camera.name = "ship-camera";
@@ -63,6 +64,9 @@ export default class Ship {
     this.controls = new OrbitControls(this.camera, domElement);
     if (initialTarget) this.controls.target.copy(initialTarget);
     this.controls.update();
+
+    // Initialize last far-check position so we don't run adjustCameraFar immediately
+    this._lastFarCheckPos.copy(this.camera.position);
 
     this.regionAware = opts?.regionAware ?? true;
     this.focusOnEntry = opts?.focusOnEntry ?? false;
@@ -99,7 +103,7 @@ export default class Ship {
       const now = performance.now();
       const tRaw = Math.min(
         1,
-        (now - this._lerpStartTime) / this._lerpDuration
+        (now - this._lerpStartTime) / this._lerpDuration,
       );
       // easeInOutQuad
       const t = tRaw < 0.5 ? 2 * tRaw * tRaw : -1 + (4 - 2 * tRaw) * tRaw;
@@ -108,7 +112,7 @@ export default class Ship {
       const curTarget = new THREE.Vector3().lerpVectors(
         this._lerpStartTarget,
         this._lerpEndTarget,
-        t
+        t,
       );
       this.controls.target.copy(curTarget);
       this.controls.update();
@@ -120,8 +124,19 @@ export default class Ship {
       this.controls.update();
     }
 
-    if (this.regionAware) {
+    // 2. ONLY adjust far plane if the camera has moved significantly
+    // to save matrix update performance.
+    if (
+      this.regionAware &&
+      this.camera.position.distanceTo(this._lastFarCheckPos) > 100
+    ) {
       this.adjustCameraFar();
+      this._lastFarCheckPos.copy(this.camera.position);
+    }
+
+    // 3. Propagate the camera to the active region for LOD/Billboarding
+    if (regionManager.activeRegion) {
+      regionManager.activeRegion.setCamera(this.camera);
     }
   }
 
@@ -139,7 +154,7 @@ export default class Ship {
   public focusOnRegion(
     region: Region,
     factor: number = 1.2,
-    durationMs?: number
+    durationMs?: number,
   ) {
     const center = new THREE.Vector3();
     region.getWorldPosition(center);
@@ -154,7 +169,7 @@ export default class Ship {
     this.controls.minDistance = Math.max(1, distance * 0.02);
     this.controls.maxDistance = Math.max(
       distance * 2,
-      this.controls.maxDistance || distance * 2
+      this.controls.maxDistance || distance * 2,
     );
 
     const dur =
@@ -199,7 +214,7 @@ export default class Ship {
 
   private computeFocusPosition(
     center: THREE.Vector3,
-    distance: number
+    distance: number,
   ): THREE.Vector3 {
     const pos = new THREE.Vector3();
     this.camera.getWorldPosition(pos);
@@ -212,7 +227,7 @@ export default class Ship {
   private startSmoothFocus(
     endCam: THREE.Vector3,
     endTarget: THREE.Vector3,
-    durationMs: number
+    durationMs: number,
   ) {
     this._lerpActive = true;
     this._lerpStartTime = performance.now();
@@ -223,18 +238,28 @@ export default class Ship {
     this._lerpEndTarget.copy(endTarget);
   }
 
-  private _onRegionTransition(ev: any) {
+  private _onRegionTransition(ev: {
+    previous: Region | null;
+    next: Region | null;
+  }) {
     // Ev contains previous and next
     try {
       const prev: Region | null = ev?.previous ?? null;
       const next: Region | null = ev?.next ?? null;
+
+      // Immediately inform the new active region about the camera
+      if (next) {
+        try {
+          next.setCamera(this.camera);
+        } catch (e) {}
+      }
 
       // Update overlay main info with the current region we're in (or none)
       try {
         if (this.overlay) {
           this.overlay.update(
             next?.name ?? null,
-            next ? next.entryRadius : prev ? prev.entryRadius : null
+            next ? next.entryRadius : prev ? prev.entryRadius : null,
           );
         }
       } catch (e) {}

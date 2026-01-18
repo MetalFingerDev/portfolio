@@ -1,96 +1,86 @@
 import * as THREE from "three";
 import { Region } from "./Region";
-import { regionManager } from "./RegionManager";
 import { Star } from "../stellar";
 import { Planet } from "../planetary";
+import { Satellite } from "../planetary/Satellite";
 
 export class SolarSystem extends Region {
-  public sun: Star;
-  public planets: Record<string, Planet> = {};
-  constructor(cfg?: any) {
-    super({ ...cfg, radius: 2000 });
+  public sun!: Star;
+  public planets: Map<string, Planet> = new Map();
+  private _shell?: THREE.Mesh;
 
-    this.name = "solar-system";
-    regionManager.register(this);
+  constructor() {
+    // 1. Initialize Region (Solar System size)
+    super({
+      name: "Solar System",
+      radius: 5000,
+      debugShells: false,
+    });
 
-    // --- SUN ---
-    this.sun = new Star(5000, 5, 0xfff3ef);
-    this.sun.name = "Sun";
+    this.setupSystem();
+  }
+
+  /**
+   * Orchestrates the creation of the star, planets, and moons.
+   */
+  private setupSystem(): void {
+    // 2. Create the Sun
+    this.sun = new Star(20000, 15, 0xffcc00, true, "Sun");
     this.add(this.sun);
     this.bodies.push(this.sun);
 
-    // --- PLANETS CONFIGURATION ---
+    // 3. Planet Configuration Table
     const planetData = [
-      { name: "Mercury", color: 0xaaaaaa, scale: 0.8 },
-      { name: "Venus", color: 0xe3bb76, scale: 1.2 },
-      { name: "Earth", color: 0x2233ff, scale: 1.3 },
-      { name: "Mars", color: 0xff3300, scale: 1.0 },
-      { name: "Jupiter", color: 0xd8ca9d, scale: 3.5 },
-      { name: "Saturn", color: 0xead6b8, scale: 3.0 },
-      { name: "Uranus", color: 0xbbe1e4, scale: 2.2 },
-      { name: "Neptune", color: 0x6081ff, scale: 2.1 },
+      { name: "Mercury", color: 0x8c8c8c, size: 0.8, orbit: 40, speed: 1.5 },
+      { name: "Venus", color: 0xe3bb76, size: 1.2, orbit: 70, speed: 1.1 },
+      { name: "Earth", color: 0x2233ff, size: 1.3, orbit: 100, speed: 0.8 },
+      { name: "Mars", color: 0xff4422, size: 1.0, orbit: 140, speed: 0.6 },
     ];
 
-    let currentDist = 8;
-
     planetData.forEach((data) => {
-      const p = new Planet(data.name, data.color, data.scale, currentDist);
+      const planet = new Planet(
+        data.name,
+        data.color,
+        data.size,
+        data.orbit,
+        data.speed,
+      );
 
-      this.add(p);
-      this.bodies.push(p);
-      this.planets[data.name.toLowerCase()] = p;
+      this.add(planet);
+      this.bodies.push(planet);
+      this.planets.set(data.name.toLowerCase(), planet);
 
-      currentDist += 10 + data.scale * 1.2;
+      // 4. Special Case: Add a Moon to Earth
+      if (data.name === "Earth") {
+        const moon = new Satellite("Luna", 5, 2.0, 0.3, 0xdddddd);
+        planet.add(moon);
+        planet.bodies.push(moon); // Planet handles updating its own bodies
+      }
     });
 
-    // --- SYSTEM SHELL ---
-    // Add a large, inward-facing shell so the interior appears rebeccapurple
-    const shellRadius = cfg?.shellRadius ?? 2200; // configurable via constructor cfg
-    const shellGeom = new THREE.SphereGeometry(shellRadius, 64, 32);
-    const shellMat = new THREE.MeshBasicMaterial({
-      color: 0x663399, // rebeccapurple
+    this.createSystemShell();
+  }
+
+  private createSystemShell() {
+    const geom = new THREE.SphereGeometry(4500, 32, 32);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x050010,
       side: THREE.BackSide,
-      depthWrite: false,
       transparent: true,
-      opacity: 0.98,
+      opacity: 0.3,
     });
-    const shell = new THREE.Mesh(shellGeom, shellMat);
-    shell.name = "solar-shell";
-    this.add(shell);
-    // store reference for later tweaks
-    (this as any).shell = shell;
+    this._shell = new THREE.Mesh(geom, mat);
+    this.add(this._shell);
   }
 
-  // Ensure we unregister when the solar system is destroyed
-  public destroy(): void {
-    try {
-      regionManager.unregister(this);
-    } catch (e) {}
-    super.destroy();
-  }
-
-  public get mercury() {
-    return this.planets["mercury"];
-  }
-  public get venus() {
-    return this.planets["venus"];
-  }
-  public get earth() {
-    return this.planets["earth"];
-  }
-  public get mars() {
-    return this.planets["mars"];
-  }
-  public get jupiter() {
-    return this.planets["jupiter"];
-  }
-  public get saturn() {
-    return this.planets["saturn"];
-  }
-  public get uranus() {
-    return this.planets["uranus"];
-  }
-  public get neptune() {
-    return this.planets["neptune"];
+  /**
+   * Finalizing resource cleanup
+   */
+  protected onDestroy(): void {
+    super.onDestroy(); // Disposes all bodies and meshes
+    if (this._shell) {
+      this._shell.geometry.dispose();
+      (this._shell.material as THREE.Material).dispose();
+    }
   }
 }

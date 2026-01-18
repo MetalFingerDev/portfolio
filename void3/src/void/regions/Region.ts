@@ -6,63 +6,104 @@ export interface RegionEventMap extends THREE.Object3DEventMap {
   exit: { type: "exit" };
 }
 
-export interface CelestialBody {
-  update(delta: number): void;
-  destroy(): void;
+/**
+ * A smart base class that handles hierarchy, orbital physics, and lifecycle management.
+ */
+export abstract class CelestialBody extends THREE.Group {
+  name: string;
+  mesh?: THREE.Mesh | THREE.Object3D;
   group?: THREE.Group | THREE.Object3D;
+  lod?: THREE.LOD;
+  point?: THREE.Points;
+
+  public abstract setCamera(camera: THREE.Camera): void;
+  public readonly isStar?: boolean;
+  public readonly isPlanet?: boolean;
+
+  public angle: number = Math.random() * Math.PI * 2;
+  public orbit: number = 0;
+  public velocity: number = 0;
+
+  constructor(name: string) {
+    super();
+    this.name = name;
+  }
+
+  public abstract create(): void;
+
+  /**
+   * Public entry point for the update loop.
+   */
+  public update(delta: number): void {
+    if (this.onUpdate) this.onUpdate(delta);
+  }
+
+  protected onUpdate?(delta: number): void;
+  protected onDestroy?(): void;
+
+  public destroy(): void {
+    if (this.onDestroy) this.onDestroy();
+    if (this.parent) this.parent.remove(this);
+  }
 }
 
 /**
- * A localized coordinate space.
- * Follows the "Tell, Don't Ask" principle for lifecycle management.
+ * Updated Region Class
+ * Now properly extends CelestialBody and implements its contract.
  */
-export class Region extends THREE.Group<RegionEventMap> {
+export class Region extends CelestialBody {
+  // Required by CelestialBody interface
+  public readonly isStar = false;
+  public readonly isPlanet = false;
+
   public bodies: CelestialBody[] = [];
   public cfg: any;
 
-  // Entry/Exit shells for LOD hysteresis
   public entryRadius: number;
   public exitRadius: number;
+  public radius: number;
 
-  // Debug visualization meshes (optional)
   private _debugEntryShell?: THREE.Mesh;
   private _debugExitShell?: THREE.Mesh;
 
-  // LOD State tracking
   public isHighDetail: boolean = false;
   private _isUpdating = false;
 
   constructor(cfg?: any) {
-    super();
+    // Pass name to the CelestialBody constructor
+    super(cfg?.name || "Unnamed Region");
+
     this.cfg = cfg || {};
-
-    // Explicitly define entry and exit shells
     this.entryRadius = cfg?.entryRadius || cfg?.radius || 1000;
-    // Default exit shell to 10% larger if not specified
     this.exitRadius = cfg?.exitRadius || this.entryRadius * 1.1;
+    this.radius = cfg?.radius ?? this.entryRadius;
 
-    this.name = cfg?.name || "Unnamed Region";
-
-    // Optional debug visualization of the entry/exit shells
-    if (cfg?.debugShells) {
-      this.toggleDebugShells(true);
-    }
+    // In this pattern, we call create() to initialize visuals
+    this.create();
   }
 
   /**
-   * Updates all child bodies.
-   * Guarded against re-entrancy to prevent stack overflows.
+   * Implementation of CelestialBody.create()
    */
-  public update(delta: number): void {
+  public create(): void {
+    if (this.cfg?.debugShells) {
+      this.toggleDebugShells(true);
+    }
+    // Any other region-specific setup (e.g. background stars, ambient light) goes here
+  }
+
+  /**
+   * Implementation of CelestialBody.onUpdate()
+   * This is called by the main loop logic (assuming your engine calls update on bodies)
+   */
+  protected onUpdate(delta: number): void {
     if (this._isUpdating) return;
     this._isUpdating = true;
 
     try {
       for (const body of this.bodies) {
-        // Safety: Ensure we don't call update on ourselves if accidentally added to bodies
-        if (body !== (this as any) && typeof body.update === "function") {
-          body.update(delta);
-        }
+        // Now calling the public update() method defined in the base class
+        body.update(delta);
       }
     } finally {
       this._isUpdating = false;
@@ -70,23 +111,40 @@ export class Region extends THREE.Group<RegionEventMap> {
   }
 
   /**
-   * Toggle or create debug wireframe spheres that visualize entry/exit shells.
+   * Implementation of CelestialBody.onDestroy()
+   * Handles specific GPU cleanup before the base class removes it from the scene.
    */
+  protected onDestroy(): void {
+    // 1. Destroy all child celestial bodies
+    this.bodies.forEach((b) => b.destroy());
+    this.bodies = [];
+
+    // 2. Dispose of Geometries and Materials
+    this.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        object.geometry?.dispose();
+        if (Array.isArray(object.material)) {
+          object.material.forEach((m) => m.dispose());
+        } else {
+          object.material?.dispose();
+        }
+      }
+    });
+  }
+
+  // --- Region Specific Methods ---
+
   public toggleDebugShells(show: boolean = true) {
-    // Helper to create the meshes lazily
     const ensureMeshes = () => {
       if (!this._debugEntryShell) {
         const g = new THREE.SphereGeometry(this.entryRadius, 32, 16);
         const m = new THREE.MeshBasicMaterial({
           color: 0x00ff00,
           wireframe: true,
-          depthWrite: false,
           transparent: true,
-          opacity: 0.6,
+          opacity: 0.2,
         });
         this._debugEntryShell = new THREE.Mesh(g, m);
-        this._debugEntryShell.name = "debug-entry-shell";
-        this._debugEntryShell.renderOrder = 1000;
         this.add(this._debugEntryShell);
       }
 
@@ -95,13 +153,10 @@ export class Region extends THREE.Group<RegionEventMap> {
         const m = new THREE.MeshBasicMaterial({
           color: 0xff0000,
           wireframe: true,
-          depthWrite: false,
           transparent: true,
-          opacity: 0.45,
+          opacity: 0.1,
         });
         this._debugExitShell = new THREE.Mesh(g, m);
-        this._debugExitShell.name = "debug-exit-shell";
-        this._debugExitShell.renderOrder = 1000;
         this.add(this._debugExitShell);
       }
     };
@@ -116,45 +171,11 @@ export class Region extends THREE.Group<RegionEventMap> {
     }
   }
 
-  /**
-   * Assigns a camera to this region and propagates to child bodies. Default is a no-op
-   * unless specific bodies handle the camera.
-   */
   public setCamera(camera: THREE.Camera): void {
-    // Store it if consumers need it later
-    (this as any)._camera = camera;
-
-    // Propagate to any child bodies that expose setCamera
     for (const body of this.bodies) {
-      if (body && typeof (body as any).setCamera === "function") {
-        (body as any).setCamera(camera);
+      if (body.setCamera) {
+        body.setCamera(camera);
       }
-    }
-  }
-
-  /**
-   * Comprehensive cleanup of GPU resources.
-   */
-  public destroy(): void {
-    // 1. Destroy all celestial bodies logic
-    this.bodies.forEach((b) => b.destroy?.());
-    this.bodies = [];
-
-    // 2. Recursively dispose of Three.js geometries and materials
-    this.traverse((object) => {
-      if (object instanceof THREE.Mesh) {
-        object.geometry?.dispose();
-        if (Array.isArray(object.material)) {
-          object.material.forEach((m) => m.dispose());
-        } else {
-          object.material?.dispose();
-        }
-      }
-    });
-
-    // 3. Remove from scene graph
-    if (this.parent) {
-      this.parent.remove(this);
     }
   }
 }
