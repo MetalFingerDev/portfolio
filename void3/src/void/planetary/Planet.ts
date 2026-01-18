@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CelestialBody } from "../regions";
+import { CelestialBody } from "@/void/regions";
 
 export class Planet extends CelestialBody {
   public readonly isPlanet = true;

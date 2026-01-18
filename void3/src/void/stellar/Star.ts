@@ -1,5 +1,5 @@
-import * as THREE from "three";
-import { CelestialBody } from "../regions";
+import * as THREE from 'three';
+import { CelestialBody } from '@/void/regions';
 
 export class Star extends CelestialBody {
   public readonly isStar = true;
@@ -18,11 +18,11 @@ export class Star extends CelestialBody {
    */
   constructor(
     parent: CelestialBody | THREE.Object3D | undefined,
-    name: string = "Star",
+    name: string = 'Star',
     intensity: number = 10000,
-    radius: number = 5,
+    radius: number = 0.00465047,
     color: number = 0xffffff,
-    emission: boolean = true,
+    emission: boolean = true
   ) {
     super(name, parent);
     this.config = { intensity, radius, color, emission };
@@ -32,6 +32,14 @@ export class Star extends CelestialBody {
 
     this.group = new THREE.Group();
     this.add(this.group);
+  }
+
+  // Expose config values for easy logging/inspection
+  public get radius(): number {
+    return this.config.radius;
+  }
+  public get intensity(): number {
+    return this.config.intensity;
   }
 
   public create(): void {
@@ -49,7 +57,7 @@ export class Star extends CelestialBody {
 
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.scale.setScalar(radius);
-    this.mesh.name = "star-mesh";
+    this.mesh.name = 'star-mesh';
 
     if (this.group) this.group.add(this.mesh);
 

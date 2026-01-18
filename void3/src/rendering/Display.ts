@@ -1,6 +1,6 @@
 import { WebGLRenderer, Scene, Camera } from "three";
 
-export interface DisplayOptions {
+export interface Options {
   antialias?: boolean;
   alpha?: boolean;
   logarithmicDepthBuffer?: boolean;
@@ -9,7 +9,7 @@ export interface DisplayOptions {
 export default class Display {
   public renderer: WebGLRenderer;
 
-  constructor(canvas?: HTMLCanvasElement, options: DisplayOptions = {}) {
+  constructor(canvas?: HTMLCanvasElement, options: Options = {}) {
     this.renderer = new WebGLRenderer({
       canvas,
       antialias: options.antialias,

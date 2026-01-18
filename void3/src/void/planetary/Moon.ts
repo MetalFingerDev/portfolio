@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CelestialBody } from "../regions";
+import { CelestialBody } from "@/void/regions";
 
 export class Moon extends CelestialBody {
   private config: {
@@ -47,8 +47,7 @@ export class Moon extends CelestialBody {
     if (this.group) this.group.add(this.mesh);
   }
 
-  public setCamera(): void {
-  }
+  public setCamera(): void {}
 
   protected onUpdate(delta: number): void {
     if (!this.mesh) this.create();

@@ -1,8 +1,8 @@
-import * as THREE from "three";
-import { Region } from "./Region";
-import { Star } from "../stellar"
-import { Planet } from "../planetary";
-import { Moon } from "../planetary";
+import * as THREE from 'three';
+import { Region } from './Region';
+import { Star } from '@/void/stellar';
+import { Planet } from '@/void/planetary';
+import { Moon } from '@/void/planetary';
 
 export class SolarSystem extends Region {
   // Public accessors for key bodies
@@ -15,8 +15,8 @@ export class SolarSystem extends Region {
   constructor() {
     // 1. Initialize the Region (Base Class)
     super({
-      name: "Solar System",
-      radius: 5000,
+      name: 'Solar System',
+      radius: 5100,
       debugShells: false, // Set to true to see the entry/exit bounds
     });
 
@@ -33,48 +33,42 @@ export class SolarSystem extends Region {
   private setup(): void {
     // --- Create Sun ---
     // Parent is 'this' (SolarSystem Region)
-    this.sun = new Star(this, "Sun", 20000, 15, 0xffffff, true);
-    console.log("Sun created.");
+    this.sun = new Star(this, 'Sun', 900, 0.00465047, 0xffffff, true);
+    console.log('Sun created:', this.sun);
+    console.log('Sun radius (Star.radius):', this.sun.radius, 'intensity:', this.sun.intensity);
 
     // --- Configuration ---
     const planetConfig = [
-      { name: "Mercury", color: 0x8c8c8c, size: 0.8, orbit: 40, speed: 1.5 },
-      { name: "Venus", color: 0xe3bb76, size: 1.2, orbit: 70, speed: 1.1 },
-      { name: "Earth", color: 0x2233ff, size: 1.3, orbit: 100, speed: 0.8 },
-      { name: "Mars", color: 0xff4422, size: 1.0, orbit: 140, speed: 0.6 },
-      { name: "Jupiter", color: 0xff4111, size: 11, orbit: 300, speed: 0.4 },
+      { name: 'Mercury', color: 0x8c8c8c, size: 1.63000e-5, orbit: 0.2, speed: 1.5 },
+      { name: 'Venus', color: 0xe3bb76, size: 4.40562e-5, orbit: 0.5, speed: 1.1 },
+      { name: 'Earth', color: 0x2233ff, size: 4.26352e-5, orbit: 1, speed: 0 },
+      { name: 'Mars', color: 0xff4422, size: 2.27352e-5, orbit: 1.2, speed: 0.6 },
+      { name: 'Jupiter', color: 0xff4111, size: 4.78000e-5, orbit: 3, speed: 0.4 },
     ];
 
     const moonConfig = [
       {
-        name: "Luna",
+        name: 'Luna',
         color: 0xffffcf,
         size: 0.3,
         orbit: 14,
         speed: 1,
-        parent: "earth",
+        parent: 'earth',
       },
       {
-        name: "Phobos",
+        name: 'Phobos',
         color: 0x554433,
         size: 0.2,
         orbit: 6,
         speed: 2.0,
-        parent: "mars",
+        parent: 'mars',
       },
     ];
 
     // --- Create Planets ---
     planetConfig.forEach((conf) => {
       // Pass 'this.sun' as parent so planets orbit the sun, not the center of the region
-      const planet = new Planet(
-        this.sun,
-        conf.name,
-        conf.color,
-        conf.size,
-        conf.orbit,
-        conf.speed,
-      );
+      const planet = new Planet(this.sun, conf.name, conf.color, conf.size, conf.orbit, conf.speed);
 
       this.planets.set(conf.name.toLowerCase(), planet);
       console.log(`Planet added: ${planet.name}`);
@@ -92,14 +86,12 @@ export class SolarSystem extends Region {
           conf.color,
           conf.size,
           conf.orbit,
-          conf.speed,
+          conf.speed
         );
         this.moons.set(conf.name.toLowerCase(), moon);
         console.log(`Moon added: ${moon.name} orbiting ${parentPlanet.name}`);
       } else {
-        console.warn(
-          `Could not find parent planet ${conf.parent} for moon ${conf.name}`,
-        );
+        console.warn(`Could not find parent planet ${conf.parent} for moon ${conf.name}`);
       }
     });
 
@@ -113,13 +105,13 @@ export class SolarSystem extends Region {
   private createSystemShell(): void {
     const geom = new THREE.SphereGeometry(4500, 32, 32);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0x050010,
+      color: 0x000000,
       side: THREE.BackSide,
       transparent: true,
       opacity: 0.1, // Lower opacity for better visibility inside
     });
     this._shell = new THREE.Mesh(geom, mat);
-    this._shell.name = "SystemShell";
+    this._shell.name = 'SystemShell';
     this.add(this._shell);
   }
 
@@ -139,7 +131,7 @@ export class SolarSystem extends Region {
    * Clean up resources
    */
   protected onDestroy(): void {
-    console.log("Destroying SolarSystem...");
+    console.log('Destroying SolarSystem...');
 
     // Dispose the shell specifically
     if (this._shell) {

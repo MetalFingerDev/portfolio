@@ -99,8 +99,8 @@ vi.mock("three", () => {
 });
 
 import * as THREE from "three";
-import { RegionManager } from "../void/regions/RegionManager";
-import { Region } from "../void/regions/Region";
+import { RegionManager } from "@/void/regions/RegionManager";
+import { Region } from "@/void/regions/Region";
 
 describe("RegionManager selection edge cases", () => {
   let rm: RegionManager;

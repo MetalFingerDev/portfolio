@@ -26,6 +26,16 @@ Prerequisites: Node.js (LTS), pnpm
 
 Open `index.html` or run the dev server and open the dev URL to explore the visualization. The primary entrypoint is `src/main.ts`.
 
+### Demos
+
+- KBC Void demo: start the dev server and open `/kbc.html` to render the KBC region.
+
+Commands:
+
+- `pnpm kbc` — start dev server and open the site, then visit `http://localhost:5173/kbc.html` (or the port Vite reports).
+
+Note: The KBC demo performs procedural generation (many shapes and galaxies) and may be slow on low-end machines; reduce population sizes in `src/void/cosmic_web/KBC.ts` if needed.
+
 ## Development
 
 - Type-check: `pnpm -w run typecheck`

@@ -17,8 +17,6 @@ export default class Overlay {
     this.el.style.pointerEvents = "none";
     this.el.innerText = "System: (none)\nScale: -";
     document.body.appendChild(this.el);
-
-    // Container for transient notifications (top-right)
     this.notifContainer = document.createElement("div");
     this.notifContainer.style.position = "fixed";
     this.notifContainer.style.right = "8px";
@@ -48,11 +46,8 @@ export default class Overlay {
     node.style.transition = "opacity 300ms ease, transform 300ms ease";
     node.style.pointerEvents = "auto";
     node.innerText = message;
-
-    // Insert at top
     this.notifContainer.insertBefore(node, this.notifContainer.firstChild);
-
-    // Auto-dismiss
+    
     setTimeout(() => {
       node.style.opacity = "0";
       node.style.transform = "translateY(-6px)";
