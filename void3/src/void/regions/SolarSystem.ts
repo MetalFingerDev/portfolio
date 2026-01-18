@@ -16,6 +16,7 @@ export class SolarSystem extends Region {
       radius: 5000,
       debugShells: false,
     });
+    console.log("SolarSystem constructed:", this.name, "radius:", this.radius);
 
     this.setupSystem();
   }
@@ -28,6 +29,7 @@ export class SolarSystem extends Region {
     this.sun = new Star(20000, 15, 0xffcc00, true, "Sun");
     this.add(this.sun);
     this.bodies.push(this.sun);
+    console.log("Sun created:", this.sun);
 
     // 3. Planet Configuration Table
     const planetData = [
@@ -49,16 +51,24 @@ export class SolarSystem extends Region {
       this.add(planet);
       this.bodies.push(planet);
       this.planets.set(data.name.toLowerCase(), planet);
+      console.log("Planet added:", planet.name, data);
 
       // 4. Special Case: Add a Moon to Earth
       if (data.name === "Earth") {
         const moon = new Satellite("Luna", 5, 2.0, 0.3, 0xdddddd);
         planet.add(moon);
         planet.bodies.push(moon); // Planet handles updating its own bodies
+        console.log("Moon added:", moon.name, "to", planet.name);
       }
     });
 
     this.createSystemShell();
+    console.log(
+      "SolarSystem setup complete:",
+      this.name,
+      "with planets:",
+      Array.from(this.planets.keys()),
+    );
   }
 
   private createSystemShell() {
@@ -71,16 +81,19 @@ export class SolarSystem extends Region {
     });
     this._shell = new THREE.Mesh(geom, mat);
     this.add(this._shell);
+    console.log("System shell created:", this._shell);
   }
 
   /**
    * Finalizing resource cleanup
    */
   protected onDestroy(): void {
+    console.log("Destroying SolarSystem:", this.name);
     super.onDestroy(); // Disposes all bodies and meshes
     if (this._shell) {
       this._shell.geometry.dispose();
       (this._shell.material as THREE.Material).dispose();
+      console.log("System shell disposed");
     }
   }
 }
