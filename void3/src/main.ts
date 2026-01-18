@@ -3,7 +3,7 @@ import * as THREE from "three";
 
 import Display from "./rendering/Display";
 import Ship from "./controls/Ship";
-import Space from "./scenes/Space";
+import Space from "./void/regions/Space";
 
 import { regionManager } from "./void/regions/RegionManager";
 import { SolarSystem } from "./void/regions/SolarSystem";
@@ -51,7 +51,7 @@ if (solarSystem.sun) {
 const clock = new THREE.Clock();
 function animate() {
   const delta = clock.getDelta();
-  
+
   solarSystem.update(delta);
   try {
     regionManager.update(ship.camera, delta);

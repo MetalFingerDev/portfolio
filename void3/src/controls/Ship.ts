@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { regionManager } from "../void/regions/RegionManager";
 import { Region } from "../void/regions/Region";
-import Overlay from "../ui/overlay";
+import Overlay from "../rendering/overlay";
 
 export default class Ship {
   public camera: THREE.PerspectiveCamera;
