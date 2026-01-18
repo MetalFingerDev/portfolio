@@ -32,6 +32,12 @@ Open `index.html` or run the dev server and open the dev URL to explore the visu
 - Recommended editor: VS Code with TypeScript and Prettier
 - Keep modules small and document public APIs in folder READMEs
 
+## Notes
+
+- 2026-01-18: The main render loop now explicitly calls `solarSystem.update(delta)` each frame to ensure region objects (e.g., `SolarSystem`) perform lazy creation and per-frame updates (stars, planets, satellites).
+- 2026-01-18: The initial camera is focused on the Sun by default so the scene is visible on load.
+- I reviewed the repository to confirm these behaviors and where updates were made (see `src/main.ts`, `src/void/regions/SolarSystem.ts`).
+
 ## Testing
 
 Run tests (if available): `pnpm test`
