@@ -38,24 +38,52 @@ const solarSystem = new SolarSystem();
 space.add(solarSystem);
 console.log("SolarSystem added to space:", solarSystem);
 
-// Position the camera right next to the Sun so the scene isn't just a black screen
-if (solarSystem.sun) {
-  const sunDistance = 40; // a bit beyond the star mesh radius (15)
-  ship.focusOn(solarSystem.sun, sunDistance);
-  console.log("Focused ship on Sun at distance:", sunDistance);
-  console.log("Ship camera position after focus:", ship.camera.position);
-} else {
-  console.warn("SolarSystem has no sun to focus on yet");
+// --- Lock-on initialization ---
+const earth = solarSystem.planets.get("earth");
+let lastEarthPos = new THREE.Vector3();
+
+if (earth) {
+  // 1. Get initial position
+  earth.getWorldPosition(lastEarthPos);
+
+  // Focus on Earth with a closer distance and make lock rigid
+  ship.focusOn(earth, 5);
+  ship.controls.enableDamping = false; // disable damping for a rock-solid lock
+  console.log("Lock-on initialized: Earth at", lastEarthPos);
 }
 
 const clock = new THREE.Clock();
 function animate() {
   const delta = clock.getDelta();
 
+  // Update game state
   solarSystem.update(delta);
   try {
     regionManager.update(ship.camera, delta);
 
+    // --- LOCK ON LOGIC ---
+    if (earth) {
+      const currentEarthPos = new THREE.Vector3();
+      earth.getWorldPosition(currentEarthPos);
+
+      // Calculate how far Earth moved since the last frame
+      const displacement = new THREE.Vector3().subVectors(
+        currentEarthPos,
+        lastEarthPos,
+      );
+
+      // MOVE THE CAMERA by the same amount
+      ship.camera.position.add(displacement);
+
+      // Update the controls center to the new Earth position
+      ship.controls.target.copy(currentEarthPos);
+
+      // Save position for the next frame
+      lastEarthPos.copy(currentEarthPos);
+    }
+    // ---------------------
+
+    // Update the Ship (applies the target change to the camera)
     ship.update();
   } catch (e) {
     console.error("Error in animate loop:", e);
