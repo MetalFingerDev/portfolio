@@ -40,7 +40,66 @@ Open `index.html` or run the dev server and open the dev URL to explore the visu
 
 ## Testing
 
-Run tests (if available): `pnpm test`
+We use Vitest for unit tests. Run tests interactively with:
+
+```
+pnpm test
+```
+
+To run the tests once (CI mode):
+
+```
+pnpm test -- --run
+```
+
+Included tests:
+
+- `src/__tests__/regionManager.test.ts` — covers RegionManager selection edge cases (entry/exit thresholds and nearest-region tie-breakers).
+
+Note: the Vitest configuration in `vitest.config.ts` inlines `three` to avoid Vite SSR interop issues; add other deps to `deps.inline` if you add more tests that import third-party libs.
+
+---
+
+## Architecture & Diagrams 🧭
+
+This repository models a simple scene graph and runtime update loop for a space simulation. Key concepts:
+
+- **CelestialBody (base)** — common base for `Region`, `Star`, `Planet`, `Moon`; provides `update(delta)` lifecycle, orbit/physics fields, `create()`, and `destroy()` hooks.
+- **Region** — a specialized `CelestialBody` that acts as a root container (e.g., `SolarSystem`, `Galaxy`), exposing `entry`, `exit`, `radius` thresholds for region management.
+- **RegionManager** — global singleton that tracks registered regions, chooses the active region based on camera distance vs `entry`/`exit`, and emits `enter`/`exit` events.
+- **Ship** — camera/controller that listens to RegionManager, updates camera limits, and focuses on regions/objects.
+
+Runtime flow (high-level):
+
+1. `animate()` -> `solarSystem.update(delta)` which recursively updates bodies.
+2. `regionManager.update(camera, delta)` chooses active region and updates LODs.
+3. `display.render(space, ship.camera)` renders the scene.
+
+Mermaid class diagram (compact):
+
+```mermaid
+classDiagram
+  CelestialBody <|-- Region
+  CelestialBody <|-- Star
+  CelestialBody <|-- Planet
+  CelestialBody <|-- Moon
+  RegionManager o-- Region
+  Ship ..> RegionManager
+```
+
+To view the diagram:
+
+- Use a Markdown viewer that supports Mermaid, or paste the snippet into https://mermaid.live.
+
+---
+
+## Developer notes
+
+- Type-check quickly with: `pnpm exec tsc --noEmit`
+- When adding unit tests that import third-party libs (like `three`), add them to `vitest.config.ts` `deps.inline` or `server.deps.inline` to avoid SSR interop issues.
+- Keep tests under `src/__tests__` and name them `*.test.ts`.
+
+---
 
 ## Contributing
 

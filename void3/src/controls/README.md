@@ -48,6 +48,11 @@ document.addEventListener("keydown", (e) => inputHandler.handleKey(e.key));
 - Test control responsiveness across different viewport sizes and system states.
 - Extend InputHandler for additional shortcuts or input devices.
 
+## Notes (2026-01-18)
+
+- The `Ship` class provides `focusOn` and `focusOnRegion` helpers that the main loop uses to programmatically position the camera on objects or regions.
+- For rigid locks (e.g., tracking a moving planet like Earth), disabling `controls.enableDamping` prevents slight camera drift and is recommended when moving the camera by object displacement each frame.
+
 ## Contributing ✨
 
 Add usage examples and document any assumptions about input devices or coordinate conventions.

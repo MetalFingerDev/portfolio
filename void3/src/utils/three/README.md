@@ -16,6 +16,10 @@ Import helpers for consistent scene setup and avoid duplicating boilerplate.
 
 - Document key helper functions and add small tests where applicable.
 
+## Notes (2026-01-18)
+
+- The project main loop now calls per-frame updates on region objects (e.g., `solarSystem.update(delta)`). Helpers in this module are used for camera positioning and scene transforms that support this pattern.
+
 ## Contributing ✨
 
 Add usage examples for new helpers.

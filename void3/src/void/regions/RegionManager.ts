@@ -62,12 +62,10 @@ export class RegionManager {
       const dist = tempPos.distanceTo(camPos);
 
       const isCurrentlyActive = region === this.activeRegion;
-      const effectiveThreshold = isCurrentlyActive
-        ? region.exitRadius
-        : region.entryRadius;
+      const effectiveThreshold = isCurrentlyActive ? region.exit : region.entry;
 
       if (dist < effectiveThreshold) {
-        if (!bestCandidate || region.entryRadius < bestCandidate.entryRadius) {
+        if (!bestCandidate || region.entry < bestCandidate.entry) {
           bestCandidate = region;
         }
       }
@@ -105,7 +103,7 @@ export class RegionManager {
       next.dispatchEvent({ type: "enter" } as any);
       if (this.log)
         console.info(
-          `[RegionManager] Entering: ${next.name} (entryRadius=${next.entryRadius}, exitRadius=${next.exitRadius})`,
+          `[RegionManager] Entering: ${next.name} (entry=${next.entry}, exit=${next.exit})`,
         );
     }
 

@@ -158,7 +158,7 @@ export default class Ship {
   ) {
     const center = new THREE.Vector3();
     region.getWorldPosition(center);
-    const radius = Math.max(region.entryRadius ?? 0, region.exitRadius ?? 0);
+    const radius = Math.max(region.entry ?? 0, region.exit ?? 0);
     const distance = Math.max(50, radius * factor);
 
     // Compute final camera position using current camera direction so we don't jump to a fixed axis
@@ -200,7 +200,7 @@ export default class Ship {
       const center = new THREE.Vector3();
       r.getWorldPosition(center);
       const distToCenter = center.distanceTo(camPos);
-      const shellRadius = Math.max(r.exitRadius ?? 0, r.entryRadius ?? 0);
+      const shellRadius = Math.max(r.exit ?? 0, r.entry ?? 0);
       const candidate = distToCenter + shellRadius + margin;
       if (candidate > requiredFar) requiredFar = candidate;
     }
@@ -259,7 +259,7 @@ export default class Ship {
         if (this.overlay) {
           this.overlay.update(
             next?.name ?? null,
-            next ? next.entryRadius : prev ? prev.entryRadius : null,
+            next ? next.entry : prev ? prev.entry : null,
           );
         }
       } catch (e) {}

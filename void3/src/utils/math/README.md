@@ -16,6 +16,10 @@ Import utilities directly where needed. Prefer small, pure functions and add tes
 
 - Add unit tests for edge cases and floating-point behavior.
 
+## Notes (2026-01-18)
+
+- The main loop includes logic that computes object displacement between frames (used for camera lock-on), so utilities for vector math and small epsilon-safe comparisons may be useful here.
+
 ## Contributing ✨
 
 Document any non-obvious numeric decisions and include references when appropriate.
