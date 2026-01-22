@@ -8,14 +8,12 @@ export class RegionManager {
   private regions = new Set<Region>();
   public activeRegion: Region | null = null;
 
-  // Configuration
-  public log = true;
-
   // Simple transition listeners (avoid depending on THREE.EventDispatcher typing)
   private _transitionListeners: Set<
     (ev: { previous: Region | null; next: Region | null }) => void
   > = new Set();
 
+  
   public register(region: Region): void {
     this.regions.add(region);
   }
@@ -96,15 +94,10 @@ export class RegionManager {
     if (previous) {
       // We no longer toggle detail states here; LOD handles visual detail.
       previous.dispatchEvent({ type: "exit" } as any);
-      if (this.log) console.info(`[RegionManager] Exiting: ${previous.name}`);
     }
 
     if (next) {
       next.dispatchEvent({ type: "enter" } as any);
-      if (this.log)
-        console.info(
-          `[RegionManager] Entering: ${next.name} (entry=${next.entry}, exit=${next.exit})`,
-        );
     }
 
     // Notify external listeners about the transition (previous may be null)

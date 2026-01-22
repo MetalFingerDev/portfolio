@@ -1,0 +1,13 @@
+# Ignore everything at the repo root
+/*
+
+# Un-ignore important git metadata and this file so it stays tracked
+!/.gitignore
+!/.gitattributes
+
+# Only allow these two project folders and their contents
+!/3js/
+!/3js/**
+!/void3/
+!/void3/**
+
